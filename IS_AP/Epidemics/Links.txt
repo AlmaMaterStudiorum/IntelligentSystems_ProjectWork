@@ -2,3 +2,20 @@ https://www.maa.org/press/periodicals/loci/joma/the-sir-model-for-spread-of-dise
 
 https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology
 
+
+
+
+Notebooks
+https://github.com/phd-course-ml-co-2021/phd-ml-co-2021-02/tree/main/notebooks
+
+
+8
+https://github.com/phd-course-ml-co-2021/phd-ml-co-2021-02/blob/main/notebooks/08.%20Compartmental%20Models%20for%20Epidemics.ipynb
+
+
+9
+https://github.com/phd-course-ml-co-2021/phd-ml-co-2021-02/blob/main/notebooks/09.%20Training%20an%20ML%20Model.ipynb
+
+
+10
+https://github.com/phd-course-ml-co-2021/phd-ml-co-2021-02/blob/main/notebooks/10.%20NPI%20Planning%20for%20Epidemic%20Control.ipynb
