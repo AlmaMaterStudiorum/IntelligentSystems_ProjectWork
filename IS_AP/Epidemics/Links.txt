@@ -19,3 +19,8 @@ https://github.com/phd-course-ml-co-2021/phd-ml-co-2021-02/blob/main/notebooks/0
 
 10
 https://github.com/phd-course-ml-co-2021/phd-ml-co-2021-02/blob/main/notebooks/10.%20NPI%20Planning%20for%20Epidemic%20Control.ipynb
+
+
+ax = lgb.create_tree_digraph(clf)
+with open('fst.svg', 'w') as f:
+    f.write(ax._repr_svg_())

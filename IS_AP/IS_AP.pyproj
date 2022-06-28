@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7bfc238c-4ac4-49d1-a32f-02d92686ef39</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Epidemics\TrainingAnMLModel.py</StartupFile>
+    <StartupFile>Epidemics\epidemics2.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -23,6 +23,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Epidemics\ComportmentalModelsForEpidemics.py" />
+    <Compile Include="Epidemics\epidemics2.py" />
     <Compile Include="Epidemics\NPIPlanningForEpidemicControl.py" />
     <Compile Include="Epidemics\TrainingAnMLModel.py" />
     <Compile Include="util\util.py" />
