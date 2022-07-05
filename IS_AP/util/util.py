@@ -219,6 +219,30 @@ def train_ml_model(model, X, y, epochs=20,
                      sample_weight=sample_weight)
     return history
 
+def train_ml_model2(model, x_train, y_train,x_test,y_test, epochs=20,
+        verbose=0, patience=10, batch_size=32,
+        validation_split=0.2, sample_weight=None,
+        loss='mse', compile_model=True):
+    # Compile the model
+    if compile_model:
+        model.compile(optimizer='Adam', loss=loss,metrics=['accuracy'])
+    # Build the early stop callback
+    cb = []
+    if validation_split > 0:
+        cb += [callbacks.EarlyStopping(patience=patience,
+            restore_best_weights=True)]
+    # if verbose == 0:
+    #     cb += [callbacks.LambdaCallback(on_epoch_end=
+    #         SimpleProgressBar(epochs))]
+    # Train the model
+    history = model.fit(x_train, y_train, validation_split=validation_split,
+                     callbacks=cb, batch_size=batch_size,
+                     epochs=epochs, verbose=verbose,
+                     sample_weight=sample_weight)
+    accuracy = model.evaluate(x_test, y_test, verbose=0)
+    
+    return history,accuracy
+
 
 # def plot_training_history(history=None, figsize=None):
 #     plt.figure(figsize=figsize)

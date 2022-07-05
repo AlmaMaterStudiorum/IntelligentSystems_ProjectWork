@@ -24,3 +24,9 @@ https://github.com/phd-course-ml-co-2021/phd-ml-co-2021-02/blob/main/notebooks/1
 ax = lgb.create_tree_digraph(clf)
 with open('fst.svg', 'w') as f:
     f.write(ax._repr_svg_())
+	
+
+List of Compression tecnique
+https://www.tivadardanka.com/blog/how-to-compress-a-neural-network
+
+https://www.frontiersin.org/articles/10.3389/fdata.2021.704182/full
