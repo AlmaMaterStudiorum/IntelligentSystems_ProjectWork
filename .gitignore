@@ -352,3 +352,5 @@ IS_AP/Epidemics/specificenv.py
 IS_AP/data/metrics.txt
 *.tflite
 *.h5
+IS_AP/data/
+IS_AP/Epidemics/PythonArea.rar
