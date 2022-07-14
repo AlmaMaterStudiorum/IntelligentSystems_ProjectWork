@@ -352,3 +352,17 @@ IS_AP/Epidemics/specificenv.py
 IS_AP/data/metrics.txt
 *.tflite
 *.h5
+IS_AP/data/nn1.evaluate.metrics.json
+IS_AP/data/nn1.train.metrics.json
+IS_AP/data/nn1_Metrics.csv
+IS_AP/data/nn1_TMOTQuantizationPostTrainDynamicRangeQuantization.evaluate.metrics.json
+IS_AP/data/nn1_TMOTQuantizationPostTrainFloat16Quantization.evaluate.metrics.json
+IS_AP/data/nn1_TMOTQuantizationPostTrainFullIntegerQuantizationIntegerOnly.evaluate.metrics.json
+IS_AP/data/nn1_TMOTQuantizationPostTrainFullIntegerQuantizationIntegerWithFloatFallback.evaluate.metrics.json
+IS_AP/data/nn1_TMOTQuantizationPostTrainIntegerOnly16BitActivationsWith8BitWeightsV1.evaluate.metrics.json
+IS_AP/data/nn1_TMOTQuantizationPostTrainIntegerOnly16BitActivationsWith8BitWeightsV2.evaluate.metrics.json
+IS_AP/data/nn2_Metrics.csv
+IS_AP/data/nn3_Metrics.csv
+IS_AP/data/nn4.json
+IS_AP/data/nn4_Metrics.csv
+IS_AP/Epidemics/PythonArea.rar
