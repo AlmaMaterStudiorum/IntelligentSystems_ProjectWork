@@ -22,13 +22,17 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Epidemics\comparemetricsfile.py" />
     <Compile Include="Epidemics\ComportmentalModelsForEpidemics.py" />
     <Compile Include="Epidemics\epidemics2.py" />
+    <Compile Include="Epidemics\evaluatemetricsfile.py" />
     <Compile Include="Epidemics\globaldata.py" />
+    <Compile Include="Epidemics\metricsfile.py" />
     <Compile Include="Epidemics\NPIPlanningForEpidemicControl.py" />
     <Compile Include="Epidemics\specificenv.py" />
     <Compile Include="Epidemics\support.py" />
     <Compile Include="Epidemics\TrainingAnMLModel.py" />
+    <Compile Include="Epidemics\trainmetricsfile.py" />
     <Compile Include="util\util.py" />
     <Compile Include="util\__init__.py" />
   </ItemGroup>
@@ -44,6 +48,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Document\exe2022.06.28.txt" />
+    <Content Include="Document\RoadMap.txt" />
     <Content Include="Epidemics\Links.txt" />
     <Content Include="util\__pycache__\util.cpython-39.pyc" />
     <Content Include="util\__pycache__\__init__.cpython-39.pyc" />

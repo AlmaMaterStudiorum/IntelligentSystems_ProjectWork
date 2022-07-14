@@ -1,0 +1,11 @@
+Durante il training del modello scrivere un file json che contiene le metriche (<nameNN>OriginalMetrics.json)
+
+Nella metrics csv aggiungere : originalpredictiontime , originalsize, compressedpredictiontime, compressedsize , predictiontimeration, sizeratio
+I valori ratio sono ricavati dai valori letti del json del modello.
+
+Nel modello pruning fare il salvataggio posttraining https://medium.com/tensorflow/introducing-the-model-optimization-toolkit-for-tensorflow-254aca1ba0a3
+Nel modello pruning ottenere tutte le metriche
+
+Vedere se si può applicare nncf
+
+

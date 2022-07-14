@@ -304,11 +304,14 @@ def save_ml_model(model, name):
         f.write(model.to_json())
 
 def save_ml_model_with_winfolder(folder, model, name): 
-    fullpathh5 = "{folder}\{name}.h5".format(folder = folder, name = name)
+    fullPath = "{folder}\{name}".format(folder = folder, name = name)
+    fullpathh5 = "{fullPath}.h5".format(fullPath = fullPath)
     fullpathjson = "{folder}\{name}.json".format(folder = folder, name = name)
     model.save_weights(fullpathh5)
     with open(fullpathjson, 'w') as f:
         f.write(model.to_json())
+
+    return fullpathh5,fullpathjson,fullPath
         
 
 def load_ml_model(name):

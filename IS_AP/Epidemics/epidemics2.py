@@ -28,6 +28,9 @@ from tensorflow.keras import callbacks
 import support
 import globaldata as gd
 import specificenv as se
+import trainmetricsfile as tmf
+import evaluatemetricsfile as emf
+from sklearn import metrics
 
 
 
@@ -59,6 +62,7 @@ nameRegTree='regtree'
 nameNN1='nn1'
 nameNN2='nn2'
 nameNN3='nn3'
+nameNN4='nn4'
 
 overwriteModel=True
 overwriteData=False
@@ -67,22 +71,41 @@ solutionGlobal= {
     nameRegTree : {},
     nameNN1 : {},
     nameNN2 : {},
-    nameNN3 : {}
+    nameNN3 : {},
+    nameNN4 : {}
 }
 
 closedGlobal= {
     nameRegTree : False,
     nameNN1 : False,
     nameNN2 : False,
-    nameNN3 : False
+    nameNN3 : False,
+    nameNN4 : False
 }
 
 accuracyGlobal = {
     nameRegTree : 0,
     nameNN1 : 0,
     nameNN2 : 0,
-    nameNN3 : 0
-    }
+    nameNN3 : 0,
+    nameNN4 : 0
+}
+
+executionTimeGlobal = {
+    nameRegTree : 0,
+    nameNN1 : 0,
+    nameNN2 : 0,
+    nameNN3 : 0,
+    nameNN4 : 0
+}
+
+sizeGlobal = {
+    nameRegTree : 0,
+    nameNN1 : 0,
+    nameNN2 : 0,
+    nameNN3 : 0,
+    nameNN4 : 0
+}
 
 npis = [
     util.NPI('masks-indoor', effect=0.75, cost=1),
@@ -182,8 +205,8 @@ def ManageData():
     global sir_ts_in 
     global sir_tr_out
     global sir_ts_out
+
     # INPUT
-        
     if (exists(support.GetDataFileFullPath('sir_tr_in.pkl'))) and (overwriteData == False):        
         sir_tr_in = pd.read_pickle(support.GetDataFileFullPath('sir_tr_in.pkl'))
     else:
@@ -246,15 +269,44 @@ def BuildTrainPrintSaveModelNeuralNetwork(hidden,name):
     nameHF='{name}.{extension}'.format(name=name,extension='h5')
     if (not exists( support.GetDataFileFullPath(nameHF)) or (overwriteModel == True)):    
         modelNeuralNework = util.build_ml_model(input_size=4, output_size=3, hidden=hidden, name='MLP')
+
+
+        starttime = datetime.datetime.now()
         historyNeuralNework,accuracyNeuralNetwork = util.train_ml_model2(modelNeuralNework, sir_tr_in, sir_tr_out, sir_ts_in,sir_ts_out , verbose=0, epochs=100)
+        endtime = datetime.datetime.now()
+        elapsed = int((endtime - starttime).total_seconds() * 1000)
+
         accuracyGlobal[name] = accuracyNeuralNetwork
         message = f'Baseline accuracy {name}:{accuracyNeuralNetwork}'
+        print(message)
+        support.appendMetrics(message)
+        message = support.getStringMLMetrics(modelNeuralNework,sir_ts_in,sir_ts_out)
         print(message)
         support.appendMetrics(message)
         util.plot_training_history(historyNeuralNework, figsize=figsize)
         util.print_ml_metrics(modelNeuralNework, sir_tr_in, sir_tr_out, 'training')
         util.print_ml_metrics(modelNeuralNework, sir_ts_in, sir_ts_out, 'test')
-        util.save_ml_model_with_winfolder(se.datafolder,modelNeuralNework, name)
+        fullpathh5,fullpathjson,fullPath = util.save_ml_model_with_winfolder(se.datafolder,modelNeuralNework, name)
+        size = os.path.getsize(fullpathh5)
+        row=tmf.getString(name,"",starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed,size)
+        tmf.save(support.GetDataFileFullPath(name),row)
+
+        starttime = datetime.datetime.now()
+
+        # Obtain the predictions
+        pred = modelNeuralNework.predict(sir_ts_in)
+        # Compute the root MSE
+        rmse = np.sqrt(metrics.mean_squared_error(sir_ts_out, pred))
+        # Compute the MAE
+        mae = metrics.mean_absolute_error(sir_ts_out, pred)
+        # Compute the coefficient of determination
+        r2 = metrics.r2_score(sir_ts_out, pred)
+
+        endtime = datetime.datetime.now()
+        elapsed = int((endtime - starttime).total_seconds() * 1000)
+        row=emf.getString(name,"",accuracyNeuralNetwork,0,rmse,mae,r2,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
+        emf.save(support.GetDataFileFullPath(name),row)
+
     else:
         print('No execution')
     
@@ -268,7 +320,10 @@ def BuildTrainPrintSaveModelNeuralNetwork2():
     BuildTrainPrintSaveModelNeuralNetwork([16,16],nameNN2)
 
 def BuildTrainPrintSaveModelNeuralNetwork3():
-    BuildTrainPrintSaveModelNeuralNetwork([16,16,16,16],nameNN3)
+    BuildTrainPrintSaveModelNeuralNetwork([16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16],nameNN3)
+
+def BuildTrainPrintSaveModelNeuralNetwork4():
+    BuildTrainPrintSaveModelNeuralNetwork([1024,1024],nameNN4)
          
 def ExecuteOptimizationProblem(name):
     BeginMethod('ExecuteOptimizationProblem: {name}'.format(name=name))
@@ -394,12 +449,17 @@ def TMOTCompressPredictNeuralNetwork2():
 def TMOTCompressPredictNeuralNetwork3():
     TMOTCompressPredictNeuralNetwork(nameNN3)
 
+def TMOTCompressPredictNeuralNetwork4():
+    TMOTCompressPredictNeuralNetwork(nameNN4)
+
 
 def representative_data_gen():
   for input_value in tf.data.Dataset.from_tensor_slices(sir_ts_in.astype('float32')).batch(1).take(100):
     yield [input_value]
     
 
+
+#
 # https://www.tensorflow.org/lite/performance/post_training_quantization
 def TMOTQuantizationPostTrainDynamicRangeQuantization(name):
     functionName=inspect.stack()[0][3]
@@ -408,36 +468,20 @@ def TMOTQuantizationPostTrainDynamicRangeQuantization(name):
     model = util.load_ml_model_with_winfolder(se.datafolder,name)
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
-    #converter.representative_dataset = representative_data_gen
-    # Ensure that if any ops can't be quantized, the converter throws an error
-    #converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS]
-    # Set the input and output tensors to uint8 (APIs added in r2.3)
-    #converter.inference_input_type = tf.uint8
-    #converter.inference_output_type = tf.uint8
 
     # sono bytes
     tflite_model_quant = converter.convert()
 
-    support.saveTFLiteFile(tflite_model_quant,name,functionName)
-    
-    #tflite_model_quant_file = support.GetDataFileFullPath('{name}.tflite'.format(name=name))
+    fullPathTFLiteModel = support.saveTFLiteFile(tflite_model_quant,name,functionName)   
 
-    ## Open file in binary write mode
-    #binary_file = open(tflite_model_quant_file, "wb")
-  
-    ## Write bytes to file
-    #binary_file.write(tflite_model_quant)
-  
-    ## Close file
-    #binary_file.close()
-
-    
-    #tflite_model_quant_file.write_bytes(tflite_model_quant)
-    # https://www.tensorflow.org/lite/performance/post_training_integer_quant
-    # Quantizzazione intera post-addestramento
+    # training metrics
+    now=datetime.datetime.now()
+    size = os.path.getsize(fullPathTFLiteModel)
+    row=tmf.getString(name,"",now.strftime("%Y-%m-%d %H:%M:%S"),now.strftime("%Y-%m-%d %H:%M:%S"),0,size)
+    tmf.save(support.GetDataFileFullPath(name),row)
     
     # Initialize the interpreter
-    interpreter = tf.lite.Interpreter(model_content=tflite_model_quant)
+    interpreter = tf.lite.Interpreter(model_path=fullPathTFLiteModel)
     interpreter.allocate_tensors()
 
     test_indices = range(sir_ts_in.shape[0])
@@ -463,29 +507,28 @@ def TMOTQuantizationPostTrainDynamicRangeQuantization(name):
         
         predictions.append(output)
         expecteds.append(test_out_type)
-        if  np.array_equal(output,test_out_type) :
-            predictionsum += 1
-        
-        if  output[0] == test_out_type[0] :
-            predictionBinarysum += 1
-            
-        if  output[1] == test_out_type[1] :
-            predictionBinarysum += 1
-         
-        if  output[2] == test_out_type[2] :
-            predictionBinarysum += 1
-            
-    tflite_model_quant_accuracy = (predictionsum * 100) / len(test_indices)
-    tflite_model_quant_binaccuracy = (predictionBinarysum * 100) / (3 * len(test_indices))
-                                          
-    
-    #print('Baseline test accuracy:', accuracyGlobal[name])
-    message = support.getStringMetrics(predictions,expecteds)
-    support.appendMetrics(logTag)
-    support.appendMetrics(message)
-    print('Quantization test accuracy:', tflite_model_quant_accuracy)
-    print('Quantization test bin accuracy:', tflite_model_quant_binaccuracy)
+
+
+    support.saveEvaluationMetrics(name,functionName,expecteds,predictions)
+
+    #starttime = datetime.datetime.now()
+    #accuracy = support.getAccuracy(expecteds,predictions,3)
+
+    #m2 = tf.keras.metrics.Accuracy(name="binary_accuracy", dtype=None)
+    #m2.update_state(expecteds,predictions)
+    #binaccuracy = m2.result().numpy() * 100
+
+    #r2, mae, rmse = support.get_metrics(expecteds,predictions)
+
+    #endtime = datetime.datetime.now()
+    #elapsed = int((endtime - starttime).total_seconds() * 1000)
+    #row=emf.getString(name,functionName,accuracy,float(binaccuracy),float(rmse),float(mae),float(r2),starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
+    #compressedMetric = f'{name}_{functionName}'
+    #emf.save(support.GetDataFileFullPath(compressedMetric),row)
+
+
     EndMethod(logTag)
+
 
 # quantize weight , quantize activation 
 # https://www.tensorflow.org/lite/performance/post_training_quantization#full_integer_quantization
@@ -506,42 +549,20 @@ def TMOTQuantizationPostTrainFullIntegerQuantizationIntegerOnly(name):
     # sono bytes
     tflite_model_quant = converter.convert()
     
+    fullPathTFLiteModel = support.saveTFLiteFile(tflite_model_quant,name,functionName)
 
-    support.saveTFLiteFile(tflite_model_quant,name,functionName)
-    
-    #tflite_model_quant_file = support.GetDataFileFullPath('{name}.tflite'.format(name=name))
+    interpreter = tf.lite.Interpreter(model_path=fullPathTFLiteModel)
 
-    ## Open file in binary write mode
-    #binary_file = open(tflite_model_quant_file, "wb")
-  
-    ## Write bytes to file
-    #binary_file.write(tflite_model_quant)
-  
-    ## Close file
-    #binary_file.close()
-
-    
-    #tflite_model_quant_file.write_bytes(tflite_model_quant)
-    # https://www.tensorflow.org/lite/performance/post_training_integer_quant
-    # Quantizzazione intera post-addestramento
-    
-    # Initialize the interpreter
-    interpreter = tf.lite.Interpreter(model_content=tflite_model_quant)
     interpreter.allocate_tensors()
 
     test_indices = range(sir_ts_in.shape[0])
     
     input_details = interpreter.get_input_details()[0]
-    #print(input_details)
     output_details = interpreter.get_output_details()[0]
-    #print(output_details)
 
     input_scale, input_zero_point = input_details["quantization"]
     output_scale, output_zero_point = output_details["quantization"]
 
-    # predictions = np.zeros((len(test_indices),), dtype=int)
-    # expecteds = np.zeros((len(test_indices),), dtype=int)
-    
     predictions = []
     expecteds = []
     predictionsum=0
@@ -554,12 +575,10 @@ def TMOTQuantizationPostTrainFullIntegerQuantizationIntegerOnly(name):
         if input_details['dtype'] == np.int8 :          
             test_in_s = test_in / input_scale
             test_in_s_z = test_in_s + input_zero_point
-            # test_in = test_in / input_scale + input_zero_point
 
         if output_details['dtype'] == np.int8 :                      
             test_out_s = test_out / output_scale
             test_out_s_z = test_out_s + output_zero_point
-            # test_out = test_out / output_scale + output_zero_point
 
         test_in_type = np.expand_dims(test_in_s_z, axis=0).astype(input_details["dtype"])
         test_out_type = np.expand_dims(test_out_s_z, axis=0).astype(output_details["dtype"])[0]
@@ -569,26 +588,9 @@ def TMOTQuantizationPostTrainFullIntegerQuantizationIntegerOnly(name):
         
         predictions.append(output)
         expecteds.append(test_out_type)
-        if  np.array_equal(output,test_out_type) :
-            predictionsum += 1
-        
-        if  output[0] == test_out_type[0] :
-            predictionBinarysum += 1
-            
-        if  output[1] == test_out_type[1] :
-            predictionBinarysum += 1
-         
-        if  output[2] == test_out_type[2] :
-            predictionBinarysum += 1
-            
-    tflite_model_quant_accuracy = (predictionsum * 100) / len(test_indices)
-    tflite_model_quant_binaccuracy = (predictionBinarysum * 100) / (3 * len(test_indices))
-                                          
-    message = support.getStringMetrics(predictions,expecteds)
-    support.appendMetrics(logTag)
-    support.appendMetrics(message)
-    print('Quantization test accuracy:', tflite_model_quant_accuracy)
-    print('Quantization test bin accuracy:', tflite_model_quant_binaccuracy)
+
+    support.saveEvaluationMetrics(name,functionName,expecteds,predictions)
+
     EndMethod(logTag)
     
     
@@ -603,33 +605,11 @@ def TMOTQuantizationPostTrainFullIntegerQuantizationIntegerWithFloatFallback (na
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
     converter.representative_dataset = representative_data_gen
-    # Ensure that if any ops can't be quantized, the converter throws an error
-    #converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
-    # Set the input and output tensors to uint8 (APIs added in r2.3)
-    #converter.inference_input_type = tf.int8  
-    #converter.inference_output_type = tf.int8  
 
     # sono bytes
     tflite_model_quant = converter.convert()
     
-
     support.saveTFLiteFile(tflite_model_quant,name,functionName)
-    
-    #tflite_model_quant_file = support.GetDataFileFullPath('{name}.tflite'.format(name=name))
-
-    ## Open file in binary write mode
-    #binary_file = open(tflite_model_quant_file, "wb")
-  
-    ## Write bytes to file
-    #binary_file.write(tflite_model_quant)
-  
-    ## Close file
-    #binary_file.close()
-
-    
-    #tflite_model_quant_file.write_bytes(tflite_model_quant)
-    # https://www.tensorflow.org/lite/performance/post_training_integer_quant
-    # Quantizzazione intera post-addestramento
     
     # Initialize the interpreter
     interpreter = tf.lite.Interpreter(model_content=tflite_model_quant)
@@ -638,16 +618,8 @@ def TMOTQuantizationPostTrainFullIntegerQuantizationIntegerWithFloatFallback (na
     test_indices = range(sir_ts_in.shape[0])
     
     input_details = interpreter.get_input_details()[0]
-    #print(input_details)
     output_details = interpreter.get_output_details()[0]
-    #print(output_details)
-
-    #input_scale, input_zero_point = input_details["quantization"]
-    #output_scale, output_zero_point = output_details["quantization"]
-
-    # predictions = np.zeros((len(test_indices),), dtype=int)
-    # expecteds = np.zeros((len(test_indices),), dtype=int)
-    
+   
     predictions = []
     expecteds = []
     predictionsum=0
@@ -664,26 +636,23 @@ def TMOTQuantizationPostTrainFullIntegerQuantizationIntegerWithFloatFallback (na
         
         predictions.append(output)
         expecteds.append(test_out_type)
-        if  np.array_equal(output,test_out_type) :
-            predictionsum += 1
-        
-        if  output[0] == test_out_type[0] :
-            predictionBinarysum += 1
-            
-        if  output[1] == test_out_type[1] :
-            predictionBinarysum += 1
-         
-        if  output[2] == test_out_type[2] :
-            predictionBinarysum += 1
-            
-    tflite_model_quant_accuracy = (predictionsum * 100) / len(test_indices)
-    tflite_model_quant_binaccuracy = (predictionBinarysum * 100) / (3 * len(test_indices))
+
+
+    support.saveEvaluationMetrics(name,functionName,expecteds,predictions)
+    # support.appendMetricsCSVList(name,functionName,predictions,expecteds)
+    #m = tf.keras.metrics.Accuracy(name="accuracy", dtype=None)
+    #m.update_state(predictions,expecteds)
+    #tflite_model_quant_accuracy = m.result().numpy()
+
+    #m = tf.keras.metrics.Accuracy(name="binary_accuracy", dtype=None)
+    #m.update_state(predictions,expecteds)
+    #tflite_model_quant_binaccuracy = m.result().numpy()
                                           
-    message = support.getStringMetrics(predictions,expecteds)
-    support.appendMetrics(logTag)
-    support.appendMetrics(message)
-    print('Quantization test accuracy:', tflite_model_quant_accuracy)
-    print('Quantization test bin accuracy:', tflite_model_quant_binaccuracy)
+    #message = support.getStringMetrics(predictions,expecteds)
+    #support.appendMetrics(logTag)
+    #support.appendMetrics(message)
+    #print('Quantization test accuracy:', tflite_model_quant_accuracy)
+    #print('Quantization test bin accuracy:', tflite_model_quant_binaccuracy)
     EndMethod(logTag)
 
 
@@ -729,112 +698,178 @@ def TMOTQuantizationPostTrainFloat16Quantization (name):
         
         predictions.append(output)
         expecteds.append(test_out_type)
-        if  np.array_equal(output,test_out_type) :
-            predictionsum += 1
-        
-        if  output[0] == test_out_type[0] :
-            predictionBinarysum += 1
-            
-        if  output[1] == test_out_type[1] :
-            predictionBinarysum += 1
-         
-        if  output[2] == test_out_type[2] :
-            predictionBinarysum += 1
-            
-    tflite_model_quant_accuracy = (predictionsum * 100) / len(test_indices)
-    tflite_model_quant_binaccuracy = (predictionBinarysum * 100) / (3 * len(test_indices))
+
+    support.saveEvaluationMetrics(name,functionName,expecteds,predictions)
+    # support.appendMetricsCSVList(name,functionName,predictions,expecteds)
+    #m = tf.keras.metrics.Accuracy(name="accuracy", dtype=None)
+    #m.update_state(predictions,expecteds)
+    #tflite_model_quant_accuracy = m.result().numpy()
+
+    #m = tf.keras.metrics.Accuracy(name="binary_accuracy", dtype=None)
+    #m.update_state(predictions,expecteds)
+    #tflite_model_quant_binaccuracy = m.result().numpy()
                                           
-    message = support.getStringMetrics(predictions,expecteds)
-    support.appendMetrics(logTag)
-    support.appendMetrics(message)
-    print('Quantization test accuracy:', tflite_model_quant_accuracy)
-    print('Quantization test bin accuracy:', tflite_model_quant_binaccuracy)
+    #message = support.getStringMetrics(predictions,expecteds)
+    #support.appendMetrics(logTag)
+    #support.appendMetrics(message)
+    #print('Quantization test accuracy:', tflite_model_quant_accuracy)
+    #print('Quantization test bin accuracy:', tflite_model_quant_binaccuracy)
     EndMethod(logTag)
+
+
+# 
+# https://www.tensorflow.org/lite/performance/post_training_quantization#integer_only_16-bit_activations_with_8-bit_weights_experimental
+# This is an experimental quantization scheme. It is similar to the "integer only" scheme, but activations are quantized based on their range to 16-bits, 
+# weights are quantized in 8-bit integer and bias is quantized into 64-bit integer
+def TMOTQuantizationPostTrainIntegerOnly16BitActivationsWith8BitWeightsV1(name):
+    functionName=inspect.stack()[0][3]
+    logTag = '{functionName} {name}'.format(name=name,functionName=functionName)
+    BeginMethod(logTag)
+    model = util.load_ml_model_with_winfolder(se.datafolder,name)
+    converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    converter.target_spec.supported_ops = [tf.lite.OpsSet.EXPERIMENTAL_TFLITE_BUILTINS_ACTIVATIONS_INT16_WEIGHTS_INT8]
+
+    # sono bytes
+    tflite_model_quant = converter.convert()
     
-# Helper function to run inference on a TFLite model
-def run_tflite_model(tflite_file, test_indices):
-      global test_images
+    support.saveTFLiteFile(tflite_model_quant,name,functionName)
+          
+    # Initialize the interpreter
+    interpreter = tf.lite.Interpreter(model_content=tflite_model_quant)
+    interpreter.allocate_tensors()
 
-      # Initialize the interpreter
-      interpreter = tf.lite.Interpreter(model_path=str(tflite_file))
-      interpreter.allocate_tensors()
+    test_indices = range(sir_ts_in.shape[0])
+    
+    input_details = interpreter.get_input_details()[0]
+    output_details = interpreter.get_output_details()[0]
 
-      input_details = interpreter.get_input_details()[0]
-      output_details = interpreter.get_output_details()[0]
+    predictions = []
+    expecteds = []
+    predictionsum=0
+    predictionBinarysum=0
+    for test_index in range(len(test_indices)):
+        test_in  = sir_ts_in.iloc[test_index]
+        test_out = sir_ts_out.iloc[test_index]
 
-      predictions = np.zeros((len(test_indices),), dtype=int)
-      for i, test_index in enumerate(test_indices):
-        test_in = sir_ts_in[test_index]
-        test_out = sir_ts_out[test_index]
-
-        # Check if the input type is quantized, then rescale input data to uint8
-        if input_details['dtype'] == np.uint8:
-          input_scale, input_zero_point = input_details["quantization"]
-          test_in = test_in / input_scale + input_zero_point
-
-        test_in = np.expand_dims(test_in, axis=0).astype(input_details["dtype"])
-        interpreter.set_tensor(input_details["index"], test_in)
+        test_in_type = np.expand_dims(test_in, axis=0).astype(input_details["dtype"])
+        test_out_type = np.expand_dims(test_out, axis=0).astype(output_details["dtype"])[0]
+        interpreter.set_tensor(input_details["index"], test_in_type)
         interpreter.invoke()
         output = interpreter.get_tensor(output_details["index"])[0]
+        
+        predictions.append(output)
+        expecteds.append(test_out_type)
 
-        predictions[i] = output.argmax()
 
-      return predictions
+    support.saveEvaluationMetrics(name,functionName,expecteds,predictions)
+    # support.appendMetricsCSVList(name,functionName,predictions,expecteds)
+    #m = tf.keras.metrics.Accuracy(name="accuracy", dtype=None)
+    #m.update_state(predictions,expecteds)
+    #tflite_model_quant_accuracy = m.result().numpy()
 
+    #m = tf.keras.metrics.Accuracy(name="binary_accuracy", dtype=None)
+    #m.update_state(predictions,expecteds)
+    #tflite_model_quant_binaccuracy = m.result().numpy()
+                                          
+    #message = support.getStringMetrics(predictions,expecteds)
+    #support.appendMetrics(logTag)
+    #support.appendMetrics(message)
+    #print('Quantization test accuracy:', tflite_model_quant_accuracy)
+    #print('Quantization test bin accuracy:', tflite_model_quant_binaccuracy)
+    EndMethod(logTag)
+
+
+# 
+# https://www.tensorflow.org/lite/performance/post_training_quantization#integer_only_16-bit_activations_with_8-bit_weights_experimental
+# This is an experimental quantization scheme. It is similar to the "integer only" scheme, but activations are quantized based on their range to 16-bits, 
+# weights are quantized in 8-bit integer and bias is quantized into 64-bit integer.
+# If 16x8 quantization is not supported for some operators in the model, then the model still can be quantized, but unsupported operators kept in float
+def TMOTQuantizationPostTrainIntegerOnly16BitActivationsWith8BitWeightsV2(name):
+    functionName=inspect.stack()[0][3]
+    logTag = '{functionName} {name}'.format(name=name,functionName=functionName)
+    BeginMethod(logTag)
+    model = util.load_ml_model_with_winfolder(se.datafolder,name)
+    converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    converter.target_spec.supported_ops = [tf.lite.OpsSet.EXPERIMENTAL_TFLITE_BUILTINS_ACTIVATIONS_INT16_WEIGHTS_INT8,tf.lite.OpsSet.TFLITE_BUILTINS]
+
+    # sono bytes
+    tflite_model_quant = converter.convert()
     
-# Helper function to evaluate a TFLite model on all images
-def evaluate_model(tflite_file, model_type):
-      global test_images
-      global test_labels
+    support.saveTFLiteFile(tflite_model_quant,name,functionName)
+          
+    # Initialize the interpreter
+    interpreter = tf.lite.Interpreter(model_content=tflite_model_quant)
+    interpreter.allocate_tensors()
 
-      test_indices = range(sir_ts_in.shape[0])
-      predictions = run_tflite_model(tflite_file, test_indices)
-
-      accuracy = (np.sum(test_labels == predictions) * 100) / len(test_images)
-
-      print('%s model accuracy is %.4f%% (Number of test samples=%d)' % (
-          model_type, accuracy, len(test_images)))
-
-def evaluate_models():
-    evaluate_model(tflite_model_file, model_type="Float")
-    evaluate_model(tflite_model_quant_file, model_type="Quantized")
-
-def TMOTQuantizationPostTrain1():
-    TMOTQuantizationPostTrainDynamicRangeQuantization(nameNN1)
-    TMOTQuantizationPostTrainFullIntegerQuantizationIntegerWithFloatFallback(nameNN1)
-    TMOTQuantizationPostTrainFullIntegerQuantizationIntegerOnly(nameNN1)
-    TMOTQuantizationPostTrainFloat16Quantization(nameNN1)
-
+    test_indices = range(sir_ts_in.shape[0])
     
-def NNCF():
-    # https://github.com/openvinotoolkit/openvino_notebooks/blob/main/notebooks/305-tensorflow-quantization-aware-training/305-tensorflow-quantization-aware-training.ipynb
-    import tensorflow as tf
+    input_details = interpreter.get_input_details()[0]
+    output_details = interpreter.get_output_details()[0]
 
-    from nncf import NNCFConfig
-    from nncf.tensorflow import create_compressed_model, register_default_init_args
+    predictions = []
+    expecteds = []
+    predictionsum=0
+    predictionBinarysum=0
+    for test_index in range(len(test_indices)):
+        test_in  = sir_ts_in.iloc[test_index]
+        test_out = sir_ts_out.iloc[test_index]
 
-    # Instantiate your uncompressed model
-    from tensorflow.keras.applications import ResNet50
-    model = ResNet50()
+        test_in_type = np.expand_dims(test_in, axis=0).astype(input_details["dtype"])
+        test_out_type = np.expand_dims(test_out, axis=0).astype(output_details["dtype"])[0]
+        interpreter.set_tensor(input_details["index"], test_in_type)
+        interpreter.invoke()
+        output = interpreter.get_tensor(output_details["index"])[0]
+        
+        predictions.append(output)
+        expecteds.append(test_out_type)
 
-    # Load a configuration file to specify compression
-    nncf_config = NNCFConfig.from_json("resnet50_int8.json")
 
-    # Provide dataset for compression algorithm initialization
-    representative_dataset = tf.data.Dataset.list_files("/path/*.jpeg")
-    nncf_config = register_default_init_args(nncf_config, representative_dataset, batch_size=1)
+    support.saveEvaluationMetrics(name,functionName,expecteds,predictions)
+    # support.appendMetricsCSVList(name,functionName,predictions,expecteds)
+    #m = tf.keras.metrics.Accuracy(name="accuracy", dtype=None)
+    #m.update_state(predictions,expecteds)
+    #tflite_model_quant_accuracy = m.result().numpy()
 
-    # Apply the specified compression algorithms to the model
-    compression_ctrl, compressed_model = create_compressed_model(model, nncf_config)
+    #m = tf.keras.metrics.Accuracy(name="binary_accuracy", dtype=None)
+    #m.update_state(predictions,expecteds)
+    #tflite_model_quant_binaccuracy = m.result().numpy()
+                                          
+    #message = support.getStringMetrics(predictions,expecteds)
+    #support.appendMetrics(logTag)
+    #support.appendMetrics(message)
+    #print('Quantization test accuracy:', tflite_model_quant_accuracy)
+    #print('Quantization test bin accuracy:', tflite_model_quant_binaccuracy)
+    EndMethod(logTag)
+ 
 
-    # Now use compressed_model as a usual Keras model
-    # to fine-tune compression parameters along with the model weights
+def TMOTQuantizationPostTrain1():    
+    TMOTQuantizationPostTrain(nameNN1)
 
-    # ... the rest of the usual TensorFlow-powered training pipeline
+def TMOTQuantizationPostTrain2():    
+    TMOTQuantizationPostTrain(nameNN2)
 
-    # Export to Frozen Graph, TensorFlow SavedModel or .h5  when done fine-tuning 
-    compression_ctrl.export_model("compressed_model.pb", save_format='frozen_graph')
-    
+def TMOTQuantizationPostTrain3():    
+    TMOTQuantizationPostTrain(nameNN3)
+
+def TMOTQuantizationPostTrain4():    
+    TMOTQuantizationPostTrain(nameNN4)
+
+
+def TMOTQuantizationPostTrain(name):
+    TMOTQuantizationPostTrainDynamicRangeQuantization(name)
+    TMOTQuantizationPostTrainFullIntegerQuantizationIntegerWithFloatFallback(name)
+    TMOTQuantizationPostTrainFullIntegerQuantizationIntegerOnly(name)
+    TMOTQuantizationPostTrainFloat16Quantization(name)
+    TMOTQuantizationPostTrainIntegerOnly16BitActivationsWith8BitWeightsV1(name)
+    TMOTQuantizationPostTrainIntegerOnly16BitActivationsWith8BitWeightsV2(name)
+    # load original training model metrics
+    # load original evaluate model metrics
+    # load compresseds training model metrics
+    # load compresseds evaluate model metrics
+
+
         
 def Run(): 
     
@@ -900,12 +935,14 @@ def RunTest():
     ManageData()
 
     # BUILD + TRAIN + PRINT + SAVE MODEL NN1
-    BuildTrainPrintSaveModelNeuralNetwork1()
+    #BuildTrainPrintSaveModelNeuralNetwork1()
 
-
-    TMOTCompressPredictNeuralNetwork1()
+    #TMOTCompressPredictNeuralNetwork1()
 
     TMOTQuantizationPostTrain1()    
+    #TMOTQuantizationPostTrain2()  
+    #TMOTQuantizationPostTrain3()
+    #TMOTQuantizationPostTrain4()
 
 # START    
 # Run()
