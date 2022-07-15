@@ -6,8 +6,11 @@ import metricsfile as mf
 structConst={
     "modelName": "", 
     "functionName":"", 
+    "loss": 0,
     "accuracy": "",
-    "binaccuracy": "", 
+    "k_binaccuracy": "",
+    "intaccuracy": "", 
+    "intbinaccuracy": "",
     "rmse": "", 
     "mae": "",
     "r2": "", 
@@ -24,12 +27,15 @@ def save(fileName,content):
     realName = getOperationName(fileName)
     mf.save(realName,content)
 
-def getString(modelName,functionName,accuracy,binaccuracy,rmse,mae,r2,startEvaluateDate,endEvaluateDate,evaluateTime):
+def getString(modelName,functionName,mlaccuracy,kerasaccuracy,intaccuracy,rmse,mae,r2,startEvaluateDate,endEvaluateDate,evaluateTime):
     content =copy.deepcopy(structConst)
     content["modelName"]=modelName
     content["functionName"]=functionName
-    content["accuracy"]=accuracy
-    content["binaccuracy"]=binaccuracy
+    content["loss"]=mlaccuracy[0]
+    content["accuracy"]=mlaccuracy[1]
+    content["k_binaccuracy"]=kerasaccuracy[0]
+    content["intaccuracy"]=intaccuracy[0]
+    content["intbinaccuracy"]=intaccuracy[1]
     content["rmse"]=rmse
     content["mae"]=mae
     content["r2"]=r2

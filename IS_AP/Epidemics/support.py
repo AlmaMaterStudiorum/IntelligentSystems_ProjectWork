@@ -8,6 +8,7 @@ import globaldata as gd
 import specificenv as se
 import datetime
 import evaluatemetricsfile as emf
+import trainmetricsfile as tmf
 
 
 def get_metrics(expecteds, predicteds):
@@ -47,7 +48,7 @@ def getMLMetrics(model, X, Y):
     # Compute the coefficient of determination
     r2 = metrics.r2_score(Y, predicteds)
 
-    accuracy = getAccuracy(Y, predicteds,Y.shape[0])
+    accuracy = getIntAccuracy(Y, predicteds,Y.shape[0])
 
     m2 = tf.keras.metrics.Accuracy(name="binary_accuracy", dtype=None)
     m2.update_state(Y,predicteds)
@@ -129,7 +130,7 @@ def appendMetricsCSVList(name,functionName,predicteds,expecteds):
     #accuracy = m1.result().numpy()
 
 
-    accuracy = getAccuracy(predicteds,expecteds,3)
+    accuracy = getIntAccuracy(predicteds,expecteds,3)
 
     m2 = tf.keras.metrics.Accuracy(name="binary_accuracy", dtype=None)
     m2.update_state(predicteds,expecteds)
@@ -156,7 +157,7 @@ def initMetricsCSV(name):
     deleteMetricsCSV(name)
     appendMetricsCSV(name,getStringMetricsCSVHeader())
 
-def getAccuracy(expecteds,predictions,dim):
+def getIntAccuracy(expecteds,predictions,dim):
     ibinsum = 0
     isum = 0
     accuracy = 0
@@ -166,9 +167,21 @@ def getAccuracy(expecteds,predictions,dim):
                 ibinsum+=1
         if ibinsum == dim :
             isum+=1
-
+            
         ibinsum = 0
-    accuracy = (isum * 100) / len(predictions)
+    accuracy = isum / len(predictions)
+
+    return accuracy
+
+def getIntBinaryAccuracy(expecteds,predictions,dim):
+    ibinsum = 0
+    accuracy = 0
+    for i, j in zip(predictions, expecteds):
+        for d in range(i.shape[0]):
+            if i[d] == j[d] :
+                ibinsum+=1
+
+    accuracy = ibinsum / (len(predictions) * i.shape[0])
 
     return accuracy
 
@@ -197,7 +210,7 @@ def appendCompressModelMetricsCSV(name,functionName,executionTime,sizeFile,expec
         model = models.model_from_json(f.read())
         model.load_weights(fullpathh5)
 
-    accuracy = getAccuracy(predicteds,expecteds,3)
+    accuracy = getIntAccuracy(predicteds,expecteds,3)
 
     m2 = tf.keras.metrics.Accuracy(name="binary_accuracy", dtype=None)
     m2.update_state(predicteds,expecteds)
@@ -211,18 +224,32 @@ def appendCompressModelMetricsCSV(name,functionName,executionTime,sizeFile,expec
     appendMetricsCSV(name,row)
 
 
+def saveTrainingMetrics(name,functionName,fullPath):
+    now=datetime.datetime.now()
+    size = os.path.getsize(fullPath)
+    row=tmf.getString(name,functionName,now.strftime("%Y-%m-%d %H:%M:%S"),now.strftime("%Y-%m-%d %H:%M:%S"),0,size)
+    realName = f'{name}_{functionName}'
+    tmf.save(GetDataFileFullPath(realName),row)
+
 def saveEvaluationMetrics(name,functionName,expecteds,predictions):
     starttime = datetime.datetime.now()
-    accuracy = getAccuracy(expecteds,predictions,3)
+    
+    intaccuracy = getIntAccuracy(expecteds,predictions,3) * 100
+    intbinaccuracy = getIntBinaryAccuracy(expecteds,predictions,3) * 100
 
+    
+    m1 = tf.keras.metrics.Accuracy(name="accuracy", dtype=None)
+    m1.update_state(expecteds,predictions)
+    mlaccuracy = m1.result().numpy() * 100
+    
     m2 = tf.keras.metrics.Accuracy(name="binary_accuracy", dtype=None)
     m2.update_state(expecteds,predictions)
-    binaccuracy = m2.result().numpy() * 100
+    mlbinaccuracy = m2.result().numpy() * 100
 
     r2, mae, rmse = get_metrics(expecteds,predictions)
 
     endtime = datetime.datetime.now()
     elapsed = int((endtime - starttime).total_seconds() * 1000)
-    row=emf.getString(name,functionName,accuracy,float(binaccuracy),float(rmse),float(mae),float(r2),starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
-    compressedMetric = f'{name}_{functionName}'
-    emf.save(GetDataFileFullPath(compressedMetric),row)
+    row=emf.getString(name,functionName,[0,0],[float(mlbinaccuracy)],[float(intaccuracy),float(intbinaccuracy)],float(rmse),float(mae),float(r2),starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
+    realName = f'{name}_{functionName}'
+    emf.save(GetDataFileFullPath(realName),row)

@@ -47,7 +47,6 @@
     <Folder Include="util\__pycache__\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Document\exe2022.06.28.txt" />
     <Content Include="Document\RoadMap.txt" />
     <Content Include="Epidemics\Links.txt" />
     <Content Include="util\__pycache__\util.cpython-39.pyc" />
