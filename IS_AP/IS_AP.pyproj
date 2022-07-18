@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7bfc238c-4ac4-49d1-a32f-02d92686ef39</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Epidemics\epidemics2.py</StartupFile>
+    <StartupFile>TransprecisionComputing\main.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -33,6 +33,10 @@
     <Compile Include="Epidemics\support.py" />
     <Compile Include="Epidemics\TrainingAnMLModel.py" />
     <Compile Include="Epidemics\trainmetricsfile.py" />
+    <Compile Include="TransprecisionComputing\main.py" />
+    <Compile Include="TransprecisionComputing\specificenv.py" />
+    <Compile Include="TransprecisionComputing\support.py" />
+    <Compile Include="TransprecisionComputing\tpcsupport.py" />
     <Compile Include="util\util.py" />
     <Compile Include="util\__init__.py" />
   </ItemGroup>
@@ -41,8 +45,11 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="data\" />
+    <Folder Include="data\input\" />
+    <Folder Include="data\input\tcp\" />
     <Folder Include="Document\" />
     <Folder Include="Epidemics\" />
+    <Folder Include="TransprecisionComputing\" />
     <Folder Include="util\" />
     <Folder Include="util\__pycache__\" />
   </ItemGroup>

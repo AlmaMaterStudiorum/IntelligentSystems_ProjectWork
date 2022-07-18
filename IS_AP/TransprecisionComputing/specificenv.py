@@ -1,0 +1,1 @@
+dataInputFolder=r'D:\Sviluppo\GitHub\AlmaMaterStudiorum\IntelligentSystems_ProjectWork\IS_AP\data\input\tpc'
