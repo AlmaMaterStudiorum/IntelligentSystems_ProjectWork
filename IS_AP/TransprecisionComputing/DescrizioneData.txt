@@ -1,0 +1,28 @@
+Convolution g100
+var_0	var_1	var_2	var_3	error	time	memory_mean	memory_peak
+
+Convolution pc
+var_0	var_1	var_2	var_3	error	time	memory_mean	memory_peak
+
+Convolution vm
+var_0	var_1	var_2	var_3	error	time	memory_mean	memory_peak
+
+
+Correlation g100
+var_0	var_1	var_2	var_3	var_4	var_5	var_6	error	time	memory_mean	memory_peak
+
+Correlation pc
+var_0	var_1	var_2	var_3	var_4	var_5	var_6	error	time	memory_mean	memory_peak
+
+Correlation vm
+var_0	var_1	var_2	var_3	var_4	var_5	var_6	error	time	memory_mean	memory_peak
+
+
+Saxpy g100
+var_0	var_1	var_2	error	time	memory_mean	memory_peak
+
+Saxpy pc
+var_0	var_1	var_2	error	time	memory_mean	memory_peak
+
+Saxpy vm
+var_0	var_1	var_2	error	time	memory_mean	memory_peak
