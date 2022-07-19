@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7bfc238c-4ac4-49d1-a32f-02d92686ef39</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>TransprecisionComputing\main.py</StartupFile>
+    <StartupFile>vertical-matchmaking\main.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -40,6 +40,9 @@
     <Compile Include="TransprecisionComputing\tpcsupport.py" />
     <Compile Include="util\util.py" />
     <Compile Include="util\__init__.py" />
+    <Compile Include="vertical-matchmaking\build_model.py" />
+    <Compile Include="vertical-matchmaking\main.py" />
+    <Compile Include="vertical-matchmaking\solve_model.py" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|PythonCore|3.9" />
@@ -47,18 +50,35 @@
   <ItemGroup>
     <Folder Include="data\" />
     <Folder Include="data\input\" />
-    <Folder Include="data\input\tcp\" />
+    <Folder Include="data\input\tpc\" />
     <Folder Include="Document\" />
     <Folder Include="Epidemics\" />
     <Folder Include="TransprecisionComputing\" />
     <Folder Include="util\" />
     <Folder Include="util\__pycache__\" />
+    <Folder Include="vertical-matchmaking\" />
+    <Folder Include="vertical-matchmaking\datasets\" />
+    <Folder Include="vertical-matchmaking\DTs\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="data\input\tpc\Convolution_g100.csv" />
     <Content Include="Document\RoadMap.txt" />
     <Content Include="Epidemics\Links.txt" />
     <Content Include="util\__pycache__\util.cpython-39.pyc" />
     <Content Include="util\__pycache__\__init__.cpython-39.pyc" />
+    <Content Include="vertical-matchmaking\datasets\Saxpy_g100.csv" />
+    <Content Include="vertical-matchmaking\datasets\Saxpy_pc.csv" />
+    <Content Include="vertical-matchmaking\datasets\Saxpy_vm.csv" />
+    <Content Include="vertical-matchmaking\DTs\saxpy_g100_error_DecisionTree_10" />
+    <Content Include="vertical-matchmaking\DTs\saxpy_g100_memory_DecisionTree_10" />
+    <Content Include="vertical-matchmaking\DTs\saxpy_g100_time_DecisionTree_10" />
+    <Content Include="vertical-matchmaking\DTs\saxpy_pc_error_DecisionTree_10" />
+    <Content Include="vertical-matchmaking\DTs\saxpy_pc_memory_DecisionTree_10" />
+    <Content Include="vertical-matchmaking\DTs\saxpy_pc_time_DecisionTree_10" />
+    <Content Include="vertical-matchmaking\DTs\saxpy_vm_error_DecisionTree_10" />
+    <Content Include="vertical-matchmaking\DTs\saxpy_vm_memory_DecisionTree_10" />
+    <Content Include="vertical-matchmaking\DTs\saxpy_vm_time_DecisionTree_10" />
+    <Content Include="vertical-matchmaking\README.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
