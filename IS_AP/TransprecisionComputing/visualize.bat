@@ -1,0 +1,1 @@
+python visualize.py ..\data\nn1_TMOTQuantizationPostTrainDynamicRangeQuantization.tflite ..\data\nn1_TMOTQuantizationPostTrainDynamicRangeQuantization.html

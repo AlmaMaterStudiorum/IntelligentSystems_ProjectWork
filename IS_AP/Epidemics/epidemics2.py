@@ -64,6 +64,7 @@ nameNN2='nn2'
 nameNN3='nn3'
 nameNN4='nn4'
 
+
 modelsNameGlobal=[nameNN1,nameNN2,nameNN3,nameNN4]
 
 overwriteModel=True
@@ -339,10 +340,17 @@ def ExecuteOptimizationProblem(name):
     if name==nameRegTree :
         model = modelRegressionTree
     else:
-        model = util.load_ml_model_with_winfolder(se.datafolder,name)
-    
+        if "_pruned" in name:
+            model = tf.keras.models.load_model(support.GetDataFileFullPath(f'{name}.h5'))
+        else:
+            model = util.load_ml_model_with_winfolder(se.datafolder,name)
+        
+    starttime = datetime.datetime.now()
     sol, closed = util.solve_sir_planning(model, npis, S0, I0, R0, beta_base=beta_base, budget=budget,nweeks=nweeks, tlim=tlim)
-       
+    endtime = datetime.datetime.now()
+    elapsed = int((endtime - starttime).total_seconds() * 1000)   
+
+
     cost = 0
     if closed == True:
         cost = sol['cost']
@@ -356,7 +364,7 @@ def ExecuteOptimizationProblem(name):
     solutionGlobal[name] = sol_df
     closedGlobal[name] = closed
     gc.collect()       
-    print(f'Problem closed: {closed} , Cost = {cost}')
+    print(f'Problem closed: {closed} , Cost = {cost} , Elapsed = {elapsed}')
     EndMethod('ExecuteOptimizationProblem: {name}'.format(name=name))
  
 def ExecuteOptimizationProblemRegTree():
@@ -411,6 +419,10 @@ def BruteForce():
 # https://www.tensorflow.org/model_optimization/guide/pruning/pruning_with_keras
 def TMOTCompressPredictNeuralNetwork(name):
     BeginMethod('CompressPredictNeuralNetwork {name}'.format(name=name))
+
+    epochConfig = 100
+    batch_sizeConfig = 32
+    end_stepConfig = np.ceil(n_ts / batch_sizeConfig).astype(np.int32) * epochConfig
     # Compress
     
     # BASELINE
@@ -420,12 +432,16 @@ def TMOTCompressPredictNeuralNetwork(name):
 
     # PRUNED MODEL
     pruning_schedule = tfmot.sparsity.keras.PolynomialDecay(
-                            initial_sparsity=0.0, final_sparsity=0.5,
-                            begin_step=2000, end_step=4000)
+                            initial_sparsity=0.2, 
+                            final_sparsity=0.9,
+                            begin_step=0, 
+                            end_step=end_stepConfig)
 
     model_for_pruning = tfmot.sparsity.keras.prune_low_magnitude(model, pruning_schedule=pruning_schedule)
 
     model_for_pruning.compile(optimizer='Adam',loss="mse",metrics=['accuracy'])
+
+    model_for_pruning.summary()
     
     logdir = tempfile.mkdtemp()
 
@@ -437,14 +453,25 @@ def TMOTCompressPredictNeuralNetwork(name):
   
     # train metrics
     starttime = datetime.datetime.now()
-    model_for_pruning.fit(sir_tr_in, sir_tr_out,batch_size=32, epochs=20, validation_split=0.2,callbacks=cb)
+    model_for_pruning.fit(sir_tr_in, sir_tr_out, batch_size=batch_sizeConfig, epochs=epochConfig, validation_split=0.2,callbacks=cb)
     endtime = datetime.datetime.now()
+
+    print("Print weight Model")
+    for layer in model_for_pruning.layers:
+      print(layer.get_weights()[0]) # weights
+      print(layer.get_weights()[1]) # biases
+    print("###################")
+
+
     elapsed = int((endtime - starttime).total_seconds() * 1000)
 
     realName = f'{name}_pruned'
-    fullpathh5,fullpathjson,fullPath = util.save_ml_model_with_winfolder(se.datafolder,model_for_pruning, realName)
+    model_for_export = tfmot.sparsity.keras.strip_pruning(model_for_pruning)
+    fullpathh5 = support.GetDataFileFullPath(f'{realName}.h5')
+    tf.keras.models.save_model(model_for_export, fullpathh5, include_optimizer=False)
+
     size = os.path.getsize(fullpathh5)
-    row=tmf.getString(name,"reference",starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed,size)
+    row=tmf.getString(name,"pruning",starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed,size)
     tmf.save(support.GetDataFileFullPath(realName),row)
     
      
@@ -464,13 +491,13 @@ def TMOTCompressPredictNeuralNetwork(name):
 
     endtime = datetime.datetime.now()
     elapsed = int((endtime - starttime).total_seconds() * 1000)
-    row=emf.getString(name,"reference",[accuracy[0],accuracy[1],0],[0,0],rmse,mae,r2,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
+    row=emf.getString(name,"pruning",[accuracy[0],accuracy[1]],[0],[0,0],rmse,mae,r2,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
     emf.save(support.GetDataFileFullPath(realName),row)
     
     
-    message = f'Pruned test accuracy {name}: {accuracy}'
-    print(message)
-    support.appendMetrics(message)
+    #message = f'Pruned test accuracy {name}: {accuracy}'
+    #print(message)
+    #support.appendMetrics(message)
 
     # Predict
     EndMethod('CompressPredictNeuralNetwork {name}'.format(name=name))
@@ -502,6 +529,15 @@ def TMOTQuantizationPostTrainDynamicRangeQuantization(name):
     logTag = '{functionName} {name}'.format(name=name,functionName=functionName)
     BeginMethod(logTag)
     model = util.load_ml_model_with_winfolder(se.datafolder,name)
+
+    """
+    print("Print weight Model")
+    for layer in model.layers:
+      print(layer.get_weights()[0]) # weights
+      print(layer.get_weights()[1]) # biases
+    print("###################")
+    """
+
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
 
@@ -516,6 +552,19 @@ def TMOTQuantizationPostTrainDynamicRangeQuantization(name):
     # Initialize the interpreter
     interpreter = tf.lite.Interpreter(model_path=fullPathTFLiteModel)
     interpreter.allocate_tensors()
+    all_tensor_details = interpreter.get_tensor_details()
+
+    """
+    print("Print weight TFLite")
+    print(interpreter.get_input_details())
+    print(interpreter.get_output_details())
+
+    for tensor_item in interpreter.get_tensor_details():
+      print("Weight %s:" % tensor_item["name"])
+      interpreter.allocate_tensors()
+      print(interpreter.tensor(tensor_item["index"])())
+    print("###################")
+    """
 
     test_indices = range(sir_ts_in.shape[0])
     
@@ -927,12 +976,25 @@ def RunTest001():
     BuildTrainPrintSaveModelNeuralNetworkAll()
     TMOTQuantizationPostTrainAll()
 
-    
+def RunTest002():
+    ManageData()
+    TMOTQuantizationPostTrain1() 
+
+def RunTest003():
+    ManageData()
+    #BuildTrainPrintSaveModelNeuralNetwork1()
+    TMOTCompressPredictNeuralNetwork1()
+    # EXECUTE OPTIMIZATION MODEL NN1
+    #ExecuteOptimizationProblem('nn1')
+    ExecuteOptimizationProblem('nn1_pruned')
+
     
 # START    
 # Run()
 #RunTest()
-RunTest001()
+#RunTest001()
+#RunTest002()
+RunTest003()
 
 
 

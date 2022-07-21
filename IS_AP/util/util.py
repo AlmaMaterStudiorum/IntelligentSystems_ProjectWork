@@ -312,7 +312,12 @@ def save_ml_model_with_winfolder(folder, model, name):
         f.write(model.to_json())
 
     return fullpathh5,fullpathjson,fullPath
-        
+
+def keras_models_save_model(folder, model, name):
+    fullPath = "{folder}\{name}.k".format(folder = folder, name = name)
+    fullpathh5 = "{fullPath}.h5".format(fullPath = fullPath)
+    keras.models.save_model(model, fullpathh5, include_optimizer=False)
+    return fullpathh5
 
 def load_ml_model(name):
     with open(f'../data/{name}.json') as f:
