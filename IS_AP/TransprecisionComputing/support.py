@@ -138,9 +138,16 @@ def BuildTrainPrintSaveModelNeuralNetwork(hidden,name, size_in ,size_out, tr_in,
     
     EndMethod('{functionName} : {name}'.format(functionName=functionName ,name=name))
 
-def GetTheData(benchmark):
+def Normalize(value,lb,ub):
+     n = (value - lb) / (ub - lb)
+     return n
+ 
+def Denormalize(value,lb,ub):
+     d = (value *  (ub - lb)) + lb 
+     return d
 
-    IsNormalize = True
+    
+def GetTheData(benchmark):
 
     fileNameg100 = f'{benchmark}_g100.csv'
     fileNamepc = f'{benchmark}_pc.csv'
@@ -163,30 +170,68 @@ def GetTheData(benchmark):
 
 
     df = dfAll.append([dfg100, dfpc,dfvm])
+    
 
+    boundaries = {}
+    
+    """
     if IsNormalize == True :
         # https://www.geeksforgeeks.org/normalize-a-column-in-pandas/#:~:text=Using%20The%20min%2Dmax%20feature,max()%20methods.
-        dfNormalize = (df - np.min(df)) / (np.max(df) - np.min(df))
+        # dfNormalize = (df - np.min(df)) / (np.max(df) - np.min(df))
 
-        print(dfNormalize)
+        column = 'error'
+        df[column] = -np.log10(df[column])
+
+        print(df[column])
 
         # Creating a dataframe with 70% values of original dataframe
-        tr = dfNormalize.sample(frac = splittingData)
+        tr = df.sample(frac = splittingData)
 
         # Creating dataframe with rest of the 30% values
-        ts = dfNormalize.drop(tr.index)
+        ts = df.drop(tr.index)
     else:
         # Creating a dataframe with 70% values of original dataframe
         tr = df.sample(frac = splittingData)
 
         # Creating dataframe with rest of the 30% values
         ts = df.drop(tr.index)
-
+    """
 
 
 
     if benchmark == 'Convolution' :
         # var_0	var_1	var_2	var_3	error	time	memory_mean	memory_peak
+        variables = ['var_0','var_1','var_2','var_3','g100','pc','vm','error','time','memory_mean','memory_peak']
+
+        boundaries ={   'var_0'         :  {'lb' : 0  , 'ub' : 0},
+                        'var_1'         :  {'lb' : 0  , 'ub' : 0},
+                        'var_2'         :  {'lb' : 0  , 'ub' : 0},                        
+                        'var_3'         :  {'lb' : 0  , 'ub' : 0},                        
+                        'g100'          :  {'lb' : 0  , 'ub' : 0},
+                        'pc'            :  {'lb' : 0  , 'ub' : 0},
+                        'vm'            :  {'lb' : 0  , 'ub' : 0},
+                        'error'         :  {'lb' : 0  , 'ub' : 0},
+                        'time'          :  {'lb' : 0  , 'ub' : 0},   
+                        'memory_mean'   :  {'lb' : 0  , 'ub' : 0},  
+                        'memory_peak'   :  {'lb' : 0  , 'ub' : 0}  
+        }
+
+        column = 'error'
+        df[column] = -np.log10(df[column])
+        
+        for v in variables:
+            boundaries[v]['lb'] = df[v].min()
+            boundaries[v]['ub'] = df[v].max()
+
+        for v in variables:
+            df[v] = (df[v] - np.min(df[v])) / (np.max(df[v]) - np.min(df[v]))
+
+        # Creating a dataframe with 70% values of original dataframe
+        tr = df.sample(frac = splittingData)
+
+        # Creating dataframe with rest of the 30% values
+        ts = df.drop(tr.index)
+                   
         tr_in = pd.DataFrame(tr,columns = ['var_0', 'var_1', 'var_2', 'var_3' ,'g100','pc','vm'])
         tr_out = pd.DataFrame(tr,columns = ['error', 'time', 'memory_mean', 'memory_peak' ])
 
@@ -196,6 +241,49 @@ def GetTheData(benchmark):
         
     else :
         # var_0	var_1	var_2	var_3	var_4	var_5	var_6	error	time	memory_mean	memory_peak
+
+        variables = ['var_0','var_1','var_2','var_3','var_4','var_5','var_6','g100','pc','vm','error','time','memory_mean','memory_peak']
+
+        boundaries ={   'var_0'         :  {'lb' : 0  , 'ub' : 0},
+                        'var_1'         :  {'lb' : 0  , 'ub' : 0},
+                        'var_2'         :  {'lb' : 0  , 'ub' : 0},                        
+                        'var_3'         :  {'lb' : 0  , 'ub' : 0},      
+                        'var_4'         :  {'lb' : 0  , 'ub' : 0},   
+                        'var_5'         :  {'lb' : 0  , 'ub' : 0},   
+                        'var_6'         :  {'lb' : 0  , 'ub' : 0},                                                                                                  
+                        'g100'          :  {'lb' : 0  , 'ub' : 0},
+                        'pc'            :  {'lb' : 0  , 'ub' : 0},
+                        'vm'            :  {'lb' : 0  , 'ub' : 0},
+                        'error'         :  {'lb' : 0  , 'ub' : 0},
+                        'time'          :  {'lb' : 0  , 'ub' : 0},   
+                        'memory_mean'   :  {'lb' : 0  , 'ub' : 0},  
+                        'memory_peak'   :  {'lb' : 0  , 'ub' : 0}  
+        }
+
+        column = 'error'
+        df[column] = -np.log10(df[column])
+        
+        for v in variables:
+            boundaries[v]['lb'] = df[v].min()
+            boundaries[v]['ub'] = df[v].max()
+
+        column = 'error'
+        df[column] = -np.log10(df[column])
+        
+        for v in variables:
+            boundaries[v]['lb'] = df[v].min()
+            boundaries[v]['ub'] = df[v].max()
+
+        for v in variables:
+            df[v] = (df[v] - np.min(df[v])) / (np.max(df[v]) - np.min(df[v]))
+
+        # Creating a dataframe with 70% values of original dataframe
+        tr = df.sample(frac = splittingData)
+
+        # Creating dataframe with rest of the 30% values
+        ts = df.drop(tr.index)
+
+        
         tr_in = pd.DataFrame(ts,columns = ['var_0', 'var_1', 'var_2', 'var_3','var_4', 'var_5', 'var_6' ,'g100','pc','vm'])
         tr_out = pd.DataFrame(ts,columns = ['error', 'time', 'memory_mean', 'memory_peak' ])
 
@@ -203,8 +291,9 @@ def GetTheData(benchmark):
         ts_out = pd.DataFrame(ts,columns = ['error', 'time', 'memory_mean', 'memory_peak' ])
 
 
+    print(boundaries)
 
-    return tr_in,tr_out,ts_in,ts_out
+    return tr_in,tr_out,ts_in,ts_out,boundaries
 
 
 # TensorFlow Model Optimization Toolkit - TMOT    
@@ -288,52 +377,39 @@ def PruningNeuralNetwork(name,tr_in,tr_out,ts_in,ts_out):
     
     EndMethod('{functionName} : {name}'.format(functionName=functionName ,name=name))
 
-def ExecuteCombinatorialOptimizationConvolution(keras_model):
+def ExecuteCombinatorialOptimizationConvolution(keras_model,boundaries):
     functionName=inspect.stack()[0][3]
     BeginMethod('{functionName} '.format(functionName=functionName))
-    timeMax = 0.9
-    errorMax = 0.1
-    tlim=100
+    timeMax = 100
+    errorMax = 0.01
+    ErrMax_log = -np.log10(errorMax)
 
+    normTimeMax = Normalize(timeMax,boundaries['time']['lb'],boundaries['time']['ub'])
+    normErrMax_log = Normalize(ErrMax_log,boundaries['error']['lb'],boundaries['error']['ub'])
+    
+    tlim=100
+    
     slv = pywraplp.Solver.CreateSolver('CBC')
     # Define the variables
     X = {}
-    """
-    for r in range(rows):
-        # Build the Convolution variables
-        X['var_0', r] = slv.NumVar(0, 1, f'var_0_{r}')
-        X['var_1', r] = slv.NumVar(0, 1, f'var_1_{r}')
-        X['var_2', r] = slv.NumVar(0, 1, f'var_2_{r}')
-        X['var_3', r] = slv.NumVar(0, 1, f'var_3_{r}')
-        X['g100', r]  = slv.IntVar(0, 1, f'g100_{r}')
-        X['pc', r]    = slv.IntVar(0, 1, f'pc_{r}')
-        X['vm', r]    = slv.IntVar(0, 1, f'vm_{r}')
-        X['error', r]  = slv.NumVar(0, 1, f'error_{r}')
-        X['time', r]    = slv.NumVar(0, 1, f'time_{r}')
-        X['memory_mean', r]    = slv.NumVar(0, 1, f'memory_mean_{r}')
-        X['memory_peak', r]    = slv.NumVar(0, 1, f'memory_peak{r}')
-        X['bitsum',r] = X['var_0', r] + X['var_1', r] + X['var_2', r] + X['var_3', r] 
-        # Constrains
-        slv.Add(X['time', r] <= timeMax)
-        slv.Add(X['error', r] <= errorMax)
-
-    # slv.Minimize(X['bitsum'])
-    """
-    X['var_0'] = slv.NumVar(0, 1, f'var_0')
-    X['var_1'] = slv.NumVar(0, 1, f'var_1')
-    X['var_2'] = slv.NumVar(0, 1, f'var_2')
-    X['var_3'] = slv.NumVar(0, 1, f'var_3')
-    X['g100']  = slv.IntVar(0, 1, f'g100')
-    X['pc']    = slv.IntVar(0, 1, f'pc')
-    X['vm']    = slv.IntVar(0, 1, f'vm')
-    X['error']  = slv.NumVar(0, 1, f'error')
-    X['time']    = slv.NumVar(0, 1, f'time')
-    X['memory_mean']    = slv.NumVar(0, 1, f'memory_mean')
-    X['memory_peak']    = slv.NumVar(0, 1, f'memory_peak')
+    
+    
+    X['var_0'] = slv.NumVar(0, 1, 'var_0')
+    X['var_1'] = slv.NumVar(0, 1, 'var_1')
+    X['var_2'] = slv.NumVar(0, 1, 'var_2')
+    X['var_3'] = slv.NumVar(0, 1, 'var_3')
+    X['g100']  = slv.IntVar(0, 1, 'g100')
+    X['pc']    = slv.IntVar(0, 1, 'pc')
+    X['vm']    = slv.IntVar(0, 1, 'vm')
+    X['error']  = slv.NumVar(0, 1, 'error')
+    X['time']    = slv.NumVar(0, 1, 'time')
+    X['memory_mean']    = slv.NumVar(0, 1, 'memory_mean')
+    X['memory_peak']    = slv.NumVar(0, 1, 'memory_peak')
     X['bitsum'] = X['var_0'] + X['var_1'] + X['var_2'] + X['var_3'] 
     # Constrains
-    slv.Add(X['time'] <= timeMax)
-    slv.Add(X['error'] <= errorMax)
+    slv.Add(X['time'] <= normTimeMax)
+    # slv.Add(X['error'] <= errorMax)
+    slv.Add(X['error'] >= normErrMax_log)
     slv.Add(X['g100'] + X['pc'] + X['vm']  == 1)
 
     slv.Minimize(X['bitsum'])
@@ -362,15 +438,45 @@ def ExecuteCombinatorialOptimizationConvolution(keras_model):
     # Return the result
     res = None
     closed = False
-    if status in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE):
+
+    if status == pywraplp.Solver.OPTIMAL :
+        print('OPTIMAL')
         res = {}
         for k, x in X.items():
             res[k] = x.solution_value()
-    if status in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.INFEASIBLE):
+        closed = True   
+    elif status == pywraplp.Solver.FEASIBLE :
+        print('FEASIBLE')
+        res = {}
+        for k, x in X.items():
+            res[k] = x.solution_value()
         closed = True
+    elif status == pywraplp.Solver.INFEASIBLE :
+        print('INFEASIBLE')
+        
+    elif status == pywraplp.Solver.UNBOUNDED :
+        print('UNBOUNDED')
+        
+    elif status == pywraplp.Solver.ABNORMAL :
+        print('ABNORMAL')
+        
+    elif status == pywraplp.Solver.NOT_SOLVED :
+        print('NOT_SOLVED')
+        
+    elif status == pywraplp.Solver.UNKNOWN :
+        print('UNKNOWN')
+        
+    else :
+        raise Exception('Unknown status')
 
-
-    print(res)
+    if res is not None :  
+        print(res)
+        variables = ['var_0','var_1','var_2','var_3','g100','pc','vm','error','time','memory_mean','memory_peak']
+        den={}
+        for v in variables:
+            den[v] = Denormalize(res[v],boundaries[v]['lb'],boundaries[v]['ub'])
+    
+        print(den)     
     print(f'Problem closed: {closed}' )
     EndMethod('{functionName} '.format(functionName=functionName ))
     return res, closed

@@ -36,23 +36,26 @@ def RunTPC001():
     currentBenchmark = 0
     benchmark = benchmarks[currentBenchmark]
 
+    
+    
+    tr_in,tr_out,ts_in,ts_out,boundaries = support.GetTheData(benchmark)
 
-
-    tr_in,tr_out,ts_in,ts_out = support.GetTheData(benchmark)
-
+    """
     support.BuildTrainPrintSaveModelNeuralNetwork(hidden,nameNN,topologies[benchmark]['size_in'],topologies[benchmark]['size_out'],tr_in,tr_out,ts_in,ts_out)
 
     support.PruningNeuralNetwork(nameNN,tr_in,tr_out,ts_in,ts_out)
+    """
 
+        
     modelReference = util.load_ml_model_with_winfolder(se.dataOutputFolder,nameNN)
 
     modelPruning = tf.keras.models.load_model(support.GetOutputDataFileFullPath(f'{nameNN}_{support.PRUNING}.h5'))
 
 
 
-    support.ExecuteCombinatorialOptimizationConvolution(modelReference)
+    support.ExecuteCombinatorialOptimizationConvolution(modelReference,boundaries)
 
-    support.ExecuteCombinatorialOptimizationConvolution(modelPruning)
+    support.ExecuteCombinatorialOptimizationConvolution(modelPruning,boundaries)
 
 
 
