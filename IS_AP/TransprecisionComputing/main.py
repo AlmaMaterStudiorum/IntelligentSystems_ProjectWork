@@ -50,8 +50,6 @@ def RunTPC001():
 
 
 
-
-
     support.ExecuteCombinatorialOptimizationConvolution(modelReference)
 
     support.ExecuteCombinatorialOptimizationConvolution(modelPruning)
