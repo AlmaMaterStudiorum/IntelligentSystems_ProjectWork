@@ -81,6 +81,7 @@
     <Content Include="Document\RoadMap.txt" />
     <Content Include="Epidemics\Links.txt" />
     <Content Include="TransprecisionComputing\Links.txt" />
+    <Content Include="TransprecisionComputing\OldCode.txt" />
     <Content Include="util\__pycache__\util.cpython-39.pyc" />
     <Content Include="util\__pycache__\__init__.cpython-39.pyc" />
     <Content Include="vertical-matchmaking\datasets\Saxpy_g100.csv" />

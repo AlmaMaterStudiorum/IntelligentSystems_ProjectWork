@@ -173,31 +173,6 @@ def GetTheData(benchmark):
     
 
     boundaries = {}
-    
-    """
-    if IsNormalize == True :
-        # https://www.geeksforgeeks.org/normalize-a-column-in-pandas/#:~:text=Using%20The%20min%2Dmax%20feature,max()%20methods.
-        # dfNormalize = (df - np.min(df)) / (np.max(df) - np.min(df))
-
-        column = 'error'
-        df[column] = -np.log10(df[column])
-
-        print(df[column])
-
-        # Creating a dataframe with 70% values of original dataframe
-        tr = df.sample(frac = splittingData)
-
-        # Creating dataframe with rest of the 30% values
-        ts = df.drop(tr.index)
-    else:
-        # Creating a dataframe with 70% values of original dataframe
-        tr = df.sample(frac = splittingData)
-
-        # Creating dataframe with rest of the 30% values
-        ts = df.drop(tr.index)
-    """
-
-
 
     if benchmark == 'Convolution' :
         # var_0	var_1	var_2	var_3	error	time	memory_mean	memory_peak
@@ -392,8 +367,7 @@ def ExecuteCombinatorialOptimizationConvolution(keras_model,boundaries):
     slv = pywraplp.Solver.CreateSolver('CBC')
     # Define the variables
     X = {}
-    
-    
+      
     X['var_0'] = slv.NumVar(0, 1, 'var_0')
     X['var_1'] = slv.NumVar(0, 1, 'var_1')
     X['var_2'] = slv.NumVar(0, 1, 'var_2')
@@ -430,7 +404,7 @@ def ExecuteCombinatorialOptimizationConvolution(keras_model,boundaries):
     util.encode(bkd, nn, slv, vin, vout, f'nn')
 
 
-        # Set a time limit
+    # Set a time limit
     if tlim is not None:
         slv.SetTimeLimit(tlim * 1000)
     # Solve the problem
