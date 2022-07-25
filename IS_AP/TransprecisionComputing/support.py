@@ -40,6 +40,7 @@ import tempfile
 
 import evaluatemetricsfile as emf
 import trainmetricsfile as tmf
+import coptimetricsfile as cmf
 
 overwriteModel = True
 splittingData = 0.8
@@ -74,6 +75,14 @@ def GetOutputDataFileFullPath(name):
     path = Path(se.dataOutputFolder)
 
     return os.path.join(path, name)
+
+def CleanFolder(fullPath):
+    for root, dirs, files in os.walk(fullPath):
+        for f in files:
+            os.unlink(os.path.join(root, f))
+        for d in dirs:
+            shutil.rmtree(os.path.join(root, d))
+
 
 def PrintNow():
     now = datetime.datetime.now()
@@ -192,14 +201,14 @@ def GetTheData(benchmark):
         }
 
         column = 'error'
-        df[column] = -np.log10(df[column])
-        
+        df[column] = np.where(df[column] == 0, 58, -np.log10(df[column]))
+       
         for v in variables:
             boundaries[v]['lb'] = df[v].min()
             boundaries[v]['ub'] = df[v].max()
 
         for v in variables:
-            df[v] = (df[v] - np.min(df[v])) / (np.max(df[v]) - np.min(df[v]))
+            df[v] = (df[v] -  boundaries[v]['lb']) / ( boundaries[v]['ub'] -  boundaries[v]['lb'] )
 
         # Creating a dataframe with 70% values of original dataframe
         tr = df.sample(frac = splittingData)
@@ -214,7 +223,7 @@ def GetTheData(benchmark):
         ts_out = pd.DataFrame(ts,columns = ['error', 'time', 'memory_mean', 'memory_peak' ])
 
         
-    else :
+    elif  benchmark == 'Correlation' :
         # var_0	var_1	var_2	var_3	var_4	var_5	var_6	error	time	memory_mean	memory_peak
 
         variables = ['var_0','var_1','var_2','var_3','var_4','var_5','var_6','g100','pc','vm','error','time','memory_mean','memory_peak']
@@ -236,21 +245,15 @@ def GetTheData(benchmark):
         }
 
         column = 'error'
-        df[column] = -np.log10(df[column])
+        df[column] = np.where(df[column] == 0, 58, -np.log10(df[column]))
         
         for v in variables:
             boundaries[v]['lb'] = df[v].min()
             boundaries[v]['ub'] = df[v].max()
 
-        column = 'error'
-        df[column] = -np.log10(df[column])
-        
-        for v in variables:
-            boundaries[v]['lb'] = df[v].min()
-            boundaries[v]['ub'] = df[v].max()
 
         for v in variables:
-            df[v] = (df[v] - np.min(df[v])) / (np.max(df[v]) - np.min(df[v]))
+            df[v] = (df[v] -  boundaries[v]['lb']) / ( boundaries[v]['ub'] -  boundaries[v]['lb'] )
 
         # Creating a dataframe with 70% values of original dataframe
         tr = df.sample(frac = splittingData)
@@ -265,7 +268,43 @@ def GetTheData(benchmark):
         ts_in = pd.DataFrame(ts,columns = ['var_0', 'var_1', 'var_2', 'var_3','var_4', 'var_5', 'var_6' ,'g100','pc','vm'])
         ts_out = pd.DataFrame(ts,columns = ['error', 'time', 'memory_mean', 'memory_peak' ])
 
+    elif  benchmark == 'Saxpy' :
+        # var_0	var_1	var_2	var_3	error	time	memory_mean	memory_peak
+        variables = ['var_0','var_1','var_2','g100','pc','vm','error','time','memory_mean','memory_peak']
 
+        boundaries ={   'var_0'         :  {'lb' : 0  , 'ub' : 0},
+                        'var_1'         :  {'lb' : 0  , 'ub' : 0},
+                        'var_2'         :  {'lb' : 0  , 'ub' : 0},                                              
+                        'g100'          :  {'lb' : 0  , 'ub' : 0},
+                        'pc'            :  {'lb' : 0  , 'ub' : 0},
+                        'vm'            :  {'lb' : 0  , 'ub' : 0},
+                        'error'         :  {'lb' : 0  , 'ub' : 0},
+                        'time'          :  {'lb' : 0  , 'ub' : 0},   
+                        'memory_mean'   :  {'lb' : 0  , 'ub' : 0},  
+                        'memory_peak'   :  {'lb' : 0  , 'ub' : 0}  
+        }
+
+        column = 'error'
+        df[column] = np.where(df[column] == 0, 58, -np.log10(df[column]))
+       
+        for v in variables:
+            boundaries[v]['lb'] = df[v].min()
+            boundaries[v]['ub'] = df[v].max()
+
+        for v in variables:
+            df[v] = (df[v] -  boundaries[v]['lb']) / ( boundaries[v]['ub'] -  boundaries[v]['lb'] )
+
+        # Creating a dataframe with 70% values of original dataframe
+        tr = df.sample(frac = splittingData)
+
+        # Creating dataframe with rest of the 30% values
+        ts = df.drop(tr.index)
+                   
+        tr_in = pd.DataFrame(tr,columns = ['var_0', 'var_1', 'var_2','g100','pc','vm'])
+        tr_out = pd.DataFrame(tr,columns = ['error', 'time', 'memory_mean', 'memory_peak' ])
+
+        ts_in = pd.DataFrame(ts,columns = ['var_0', 'var_1', 'var_2', 'g100','pc','vm'])
+        ts_out = pd.DataFrame(ts,columns = ['error', 'time', 'memory_mean', 'memory_peak' ])
     print(boundaries)
 
     return tr_in,tr_out,ts_in,ts_out,boundaries
@@ -352,11 +391,16 @@ def PruningNeuralNetwork(name,tr_in,tr_out,ts_in,ts_out):
     
     EndMethod('{functionName} : {name}'.format(functionName=functionName ,name=name))
 
-def ExecuteCombinatorialOptimizationConvolution(keras_model,boundaries):
+def ExecuteCombinatorialOptimizationConvolution(keras_model,modelName,netType,boundaries,timeMax,errorMax,size_in):
     functionName=inspect.stack()[0][3]
-    BeginMethod('{functionName} '.format(functionName=functionName))
-    timeMax = 100
-    errorMax = 0.01
+    benchmark = 'Convolution'
+    BeginMethod('{functionName} : {benchmark} {netType}'.format(functionName=functionName , benchmark=benchmark,netType=netType))
+   
+
+    variables = ['var_0','var_1','var_2','var_3','g100','pc','vm','error','time','memory_mean','memory_peak']
+
+    #timeMax = 100
+    #errorMax = 0.01
     ErrMax_log = -np.log10(errorMax)
 
     normTimeMax = Normalize(timeMax,boundaries['time']['lb'],boundaries['time']['ub'])
@@ -393,8 +437,8 @@ def ExecuteCombinatorialOptimizationConvolution(keras_model,boundaries):
     # Convert the keras model in internal format
     nn = keras_reader.read_keras_sequential(keras_model)
     # Set bounds
-    nn.layer(0).update_lb(np.zeros(7))
-    nn.layer(0).update_ub(np.ones(7))
+    nn.layer(0).update_lb(np.zeros(size_in))
+    nn.layer(0).update_ub(np.ones(size_in))
     # Propagate bounds
     ibr_bounds(nn)
     # Build the encodings
@@ -404,6 +448,127 @@ def ExecuteCombinatorialOptimizationConvolution(keras_model,boundaries):
     util.encode(bkd, nn, slv, vin, vout, f'nn')
 
 
+    SolveCombinatorialOptimization(slv,X,boundaries,modelName,functionName,variables,benchmark)
+
+    """
+    # Set a time limit
+    if tlim is not None:
+        slv.SetTimeLimit(tlim * 1000)
+    # Solve the problem
+    starttime = datetime.datetime.now()
+    status = slv.Solve()
+    endtime = datetime.datetime.now()
+    elapsed = int((endtime - starttime).total_seconds() * 1000)
+    # Return the result
+    res = None
+    closed = False
+
+    if status == pywraplp.Solver.OPTIMAL :
+        print('OPTIMAL')
+        res = {}
+        for k, x in X.items():
+            res[k] = x.solution_value()
+        closed = True   
+    elif status == pywraplp.Solver.FEASIBLE :
+        print('FEASIBLE')
+        res = {}
+        for k, x in X.items():
+            res[k] = x.solution_value()
+        closed = True
+    elif status == pywraplp.Solver.INFEASIBLE :
+        print('INFEASIBLE')
+        
+    elif status == pywraplp.Solver.UNBOUNDED :
+        print('UNBOUNDED')
+        
+    elif status == pywraplp.Solver.ABNORMAL :
+        print('ABNORMAL')
+        
+    elif status == pywraplp.Solver.NOT_SOLVED :
+        print('NOT_SOLVED')
+        
+    elif status == pywraplp.Solver.UNKNOWN :
+        print('UNKNOWN')
+        
+    else :
+        raise Exception('Unknown status')
+
+    if res is not None :  
+        print('Normalized values')
+        print(res)
+        
+        den={}
+        for v in variables:
+            den[v] = Denormalize(res[v],boundaries[v]['lb'],boundaries[v]['ub'])
+
+        print('Denormalized values')
+        print(den)     
+
+
+    print(f'Problem closed: {closed}' )
+    EndMethod('{functionName} '.format(functionName=functionName ))
+    return res, closed
+    """
+
+
+def ExecuteCombinatorialOptimizationCorrelation(keras_model,boundaries,timeMax,errorMax,size_in):
+    functionName=inspect.stack()[0][3]
+    BeginMethod('{functionName} '.format(functionName=functionName))
+
+    variables = ['var_0','var_1','var_2','var_3','var_4','var_5','var_6','g100','pc','vm','error','time','memory_mean','memory_peak']
+
+    #timeMax = 100
+    #errorMax = 0.01
+    ErrMax_log = -np.log10(errorMax)
+
+    normTimeMax = Normalize(timeMax,boundaries['time']['lb'],boundaries['time']['ub'])
+    normErrMax_log = Normalize(ErrMax_log,boundaries['error']['lb'],boundaries['error']['ub'])
+    
+    tlim=100
+    
+    slv = pywraplp.Solver.CreateSolver('CBC')
+    # Define the variables
+    X = {}
+      
+    X['var_0'] = slv.NumVar(0, 1, 'var_0')
+    X['var_1'] = slv.NumVar(0, 1, 'var_1')
+    X['var_2'] = slv.NumVar(0, 1, 'var_2')
+    X['var_3'] = slv.NumVar(0, 1, 'var_3')
+    X['var_4'] = slv.NumVar(0, 1, 'var_4')
+    X['var_5'] = slv.NumVar(0, 1, 'var_5')
+    X['var_6'] = slv.NumVar(0, 1, 'var_6')
+    X['g100']  = slv.IntVar(0, 1, 'g100')
+    X['pc']    = slv.IntVar(0, 1, 'pc')
+    X['vm']    = slv.IntVar(0, 1, 'vm')
+    X['error']  = slv.NumVar(0, 1, 'error')
+    X['time']    = slv.NumVar(0, 1, 'time')
+    X['memory_mean']    = slv.NumVar(0, 1, 'memory_mean')
+    X['memory_peak']    = slv.NumVar(0, 1, 'memory_peak')
+    X['bitsum'] = X['var_0'] + X['var_1'] + X['var_2'] + X['var_3'] + X['var_4'] + X['var_5'] + X['var_6']
+    # Constrains
+    slv.Add(X['time'] <= normTimeMax)
+    # slv.Add(X['error'] <= errorMax)
+    slv.Add(X['error'] >= normErrMax_log)
+    slv.Add(X['g100'] + X['pc'] + X['vm']  == 1)
+
+    slv.Minimize(X['bitsum'])
+
+    # Build a backend object
+    bkd = ortools_backend.OrtoolsBackend()
+    # Convert the keras model in internal format
+    nn = keras_reader.read_keras_sequential(keras_model)
+    # Set bounds
+    nn.layer(0).update_lb(np.zeros(size_in))
+    nn.layer(0).update_ub(np.ones(size_in))
+    # Propagate bounds
+    ibr_bounds(nn)
+    # Build the encodings
+
+    vin = [X['var_0'], X['var_1'], X['var_2'], X['var_3'],X['var_4'], X['var_5'], X['var_6'], X['g100'] ,X['pc'], X['vm'] ]
+    vout = [X['error'], X['time'], X['memory_mean'] , X['memory_peak'] ]
+    util.encode(bkd, nn, slv, vin, vout, f'nn')
+
+    """
     # Set a time limit
     if tlim is not None:
         slv.SetTimeLimit(tlim * 1000)
@@ -444,13 +609,198 @@ def ExecuteCombinatorialOptimizationConvolution(keras_model,boundaries):
         raise Exception('Unknown status')
 
     if res is not None :  
+        print('Normalized values')
         print(res)
-        variables = ['var_0','var_1','var_2','var_3','g100','pc','vm','error','time','memory_mean','memory_peak']
+        
         den={}
         for v in variables:
             den[v] = Denormalize(res[v],boundaries[v]['lb'],boundaries[v]['ub'])
-    
+
+        print('Denormalized values')
         print(den)     
+
+
     print(f'Problem closed: {closed}' )
+    EndMethod('{functionName} '.format(functionName=functionName ))
+    return res, closed
+    """
+    SolveCombinatorialOptimization(slv,X,boundaries,modelName,functionName,variables,benchmark)
+
+
+def ExecuteCombinatorialOptimizationSaxpy(keras_model,boundaries,timeMax,errorMax,size_in):
+    functionName=inspect.stack()[0][3]
+    BeginMethod('{functionName} '.format(functionName=functionName))
+
+    variables = ['var_0','var_1','var_2','g100','pc','vm','error','time','memory_mean','memory_peak']
+
+    #timeMax = 100
+    #errorMax = 0.01
+    ErrMax_log = -np.log10(errorMax)
+
+    normTimeMax = Normalize(timeMax,boundaries['time']['lb'],boundaries['time']['ub'])
+    normErrMax_log = Normalize(ErrMax_log,boundaries['error']['lb'],boundaries['error']['ub'])
+    
+    tlim=1000
+    
+    slv = pywraplp.Solver.CreateSolver('CBC')
+    # Define the variables
+    X = {}
+      
+    X['var_0'] = slv.NumVar(0, 1, 'var_0')
+    X['var_1'] = slv.NumVar(0, 1, 'var_1')
+    X['var_2'] = slv.NumVar(0, 1, 'var_2')
+    X['g100']  = slv.IntVar(0, 1, 'g100')
+    X['pc']    = slv.IntVar(0, 1, 'pc')
+    X['vm']    = slv.IntVar(0, 1, 'vm')
+    X['error']  = slv.NumVar(0, 1, 'error')
+    X['time']    = slv.NumVar(0, 1, 'time')
+    X['memory_mean']    = slv.NumVar(0, 1, 'memory_mean')
+    X['memory_peak']    = slv.NumVar(0, 1, 'memory_peak')
+    X['bitsum'] = X['var_0'] + X['var_1'] + X['var_2'] 
+    # Constrains
+    slv.Add(X['time'] <= normTimeMax)
+    # slv.Add(X['error'] <= errorMax)
+    slv.Add(X['error'] >= normErrMax_log)
+    slv.Add(X['g100'] + X['pc'] + X['vm']  == 1)
+
+    slv.Minimize(X['bitsum'])
+
+    # Build a backend object
+    bkd = ortools_backend.OrtoolsBackend()
+    # Convert the keras model in internal format
+    nn = keras_reader.read_keras_sequential(keras_model)
+    # Set bounds
+    nn.layer(0).update_lb(np.zeros(size_in))
+    nn.layer(0).update_ub(np.ones(size_in))
+    # Propagate bounds
+    ibr_bounds(nn)
+    # Build the encodings
+
+    vin = [X['var_0'], X['var_1'], X['var_2'], X['g100'] ,X['pc'], X['vm'] ]
+    vout = [X['error'], X['time'], X['memory_mean'] , X['memory_peak'] ]
+    util.encode(bkd, nn, slv, vin, vout, f'nn')
+
+    """
+    # Set a time limit
+    if tlim is not None:
+        slv.SetTimeLimit(tlim * 1000)
+    # Solve the problem
+    status = slv.Solve()
+    # Return the result
+    res = None
+    closed = False
+
+    if status == pywraplp.Solver.OPTIMAL :
+        print('OPTIMAL')
+        res = {}
+        for k, x in X.items():
+            res[k] = x.solution_value()
+        closed = True   
+    elif status == pywraplp.Solver.FEASIBLE :
+        print('FEASIBLE')
+        res = {}
+        for k, x in X.items():
+            res[k] = x.solution_value()
+        closed = True
+    elif status == pywraplp.Solver.INFEASIBLE :
+        print('INFEASIBLE')
+        
+    elif status == pywraplp.Solver.UNBOUNDED :
+        print('UNBOUNDED')
+        
+    elif status == pywraplp.Solver.ABNORMAL :
+        print('ABNORMAL')
+        
+    elif status == pywraplp.Solver.NOT_SOLVED :
+        print('NOT_SOLVED')
+        
+    elif status == pywraplp.Solver.UNKNOWN :
+        print('UNKNOWN')
+        
+    else :
+        raise Exception('Unknown status')
+
+    if res is not None :  
+        print('Normalized values')
+        print(res)
+        
+        den={}
+        for v in variables:
+            den[v] = Denormalize(res[v],boundaries[v]['lb'],boundaries[v]['ub'])
+
+        print('Denormalized values')
+        print(den)     
+
+
+    print(f'Problem closed: {closed}' )
+    EndMethod('{functionName} '.format(functionName=functionName ))
+    return res, closed
+    """
+    SolveCombinatorialOptimization(slv,X,boundaries,modelName,functionName,variables,benchmark)
+
+
+def SolveCombinatorialOptimization(solver,X,boundaries,modelName,functionName,variables,benckmark):
+
+    tlim=1000
+    # Set a time limit
+    if tlim is not None:
+        solver.SetTimeLimit(tlim * 1000)
+    # Solve the problem
+    starttime = datetime.datetime.now()
+    status = solver.Solve()
+    endtime = datetime.datetime.now()
+    elapsed = int((endtime - starttime).total_seconds() * 1000)
+    # Return the result
+
+    closed = False
+    normalizedvalue = None
+
+    if status == pywraplp.Solver.OPTIMAL :
+        sstatus = 'OPTIMAL'
+        for k, x in X.items():
+            normalizedvalue[k] = x.solution_value()
+        closed = True   
+    elif status == pywraplp.Solver.FEASIBLE :
+        sstatus = 'FEASIBLE'
+        for k, x in X.items():
+            normalizedvalue[k] = x.solution_value()
+        closed = True
+    elif status == pywraplp.Solver.INFEASIBLE :
+        sstatus = 'INFEASIBLE'
+        
+    elif status == pywraplp.Solver.UNBOUNDED :
+        sstatus = 'UNBOUNDED'
+        
+    elif status == pywraplp.Solver.ABNORMAL :
+        sstatus = 'ABNORMAL'
+        
+    elif status == pywraplp.Solver.NOT_SOLVED :
+        sstatus = 'NOT_SOLVED'
+        
+    elif status == pywraplp.Solver.UNKNOWN :
+        sstatus = 'UNKNOWN'
+        
+    else :
+        raise Exception('Unknown status')
+
+    if normalizedvalue is not None :  
+        print('Normalized values')
+        print(normalizedvalue)
+        
+        denormalizedvalue={}
+        for v in variables:
+            denormalizedvalue[v] = Denormalize(normalizedvalue[v],boundaries[v]['lb'],boundaries[v]['ub'])
+
+        print('Denormalized values')
+        print(denormalizedvalue)     
+
+
+    print(f'Problem closed: {closed} , status : {sstatus} ')
+
+
+    content = cmf.getString(modelName,functionName,benckmark,boundaries,sstatus,normalizedvalue,denormalizedvalue,closed,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
+    cmf.save(modelName,functionName,benckmark,content)
+
+
     EndMethod('{functionName} '.format(functionName=functionName ))
     return res, closed

@@ -1,10 +1,11 @@
 import json
 import copy 
 import os
+from numpyencoder import NumpyEncoder
 
 def save(fileName,content):
     with open(fileName, 'w') as outfile:
-        json.dump(content, outfile, indent=4)
+        json.dump(content, outfile, indent=4,cls=NumpyEncoder)
 
 def read(fileName):
     with open(fileName) as json_file:

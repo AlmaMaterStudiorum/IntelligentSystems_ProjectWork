@@ -1,0 +1,30 @@
+{
+  "model": "resnet50",
+  "pretrained": false,
+  "batch_size": 256,
+  "input_info": {
+    "sample_size": [1 , 4 ]
+  },
+  "num_classes": [ 3 ],
+
+  "optimizer": {
+    "base_lr": 3.1e-4,
+    "schedule_type": "plateau",
+    "type": "Adam",
+    "schedule_params": {
+      "threshold": 0.1,
+      "cooldown": 3
+    },
+    "weight_decay": 1e-05
+  },
+  "compression": {
+    "algorithm": "quantization",
+    "initializer": {
+      "precision": {
+        "type": "hawq",
+        "bits": [ 4, 8 ],
+        "compression_ratio": 1.5
+      }
+    }
+  }
+}
