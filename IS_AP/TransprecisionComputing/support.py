@@ -37,10 +37,11 @@ import skopt
 import tensorflow_model_optimization as tfmot
 import tempfile
 
-
+import metricsfile as mf
 import evaluatemetricsfile as emf
 import trainmetricsfile as tmf
 import coptimetricsfile as cmf
+import pathfiles as pf
 
 overwriteModel = True
 splittingData = 0.8
@@ -48,6 +49,7 @@ epochConfig = 100
 batch_sizeConfig = 32
 
 PRUNING = 'pruning'
+REFERENCE ='reference'
 
 
 # CONFIG
@@ -62,19 +64,7 @@ else:
     # PDF export behavior
     figsize=(14, 5)
 
-def GetDataFileFullPath(name):
-    return os.path.join(se.datafolder, name)
 
-def GetInputDataFileFullPath(name):
-    return os.path.join(se.dataInputFolder, name)
-
-def GetOutputDataFileFullPath(name):
-
-    if not os.path.exists(se.dataOutputFolder):
-        os.makedirs(se.dataOutputFolder)
-    path = Path(se.dataOutputFolder)
-
-    return os.path.join(path, name)
 
 def CleanFolder(fullPath):
     for root, dirs, files in os.walk(fullPath):
@@ -103,12 +93,15 @@ def EndMethod(methodName):
     print('elapsed {elapsed}'.format(elapsed=int(elapsed.total_seconds() * 1000)))
     print('------------------------------------------------------')
 
+    
 
-
-def BuildTrainPrintSaveModelNeuralNetwork(hidden,name, size_in ,size_out, tr_in,tr_out,ts_in,ts_out):
+def BuildTrainPrintSaveModelNeuralNetwork(hidden,name,benchmark, size_in ,size_out, tr_in,tr_out,ts_in,ts_out):
     functionName=inspect.stack()[0][3]
-    BeginMethod('{functionName} : {name}'.format(functionName=functionName ,name=name))
-    nameHF='{name}.{extension}'.format(name=name,extension='h5')
+    netType = REFERENCE
+    LogMessage = '{functionName} : {name} {netType} {benchmark}'.format(functionName=functionName ,name=name, netType=netType,benchmark=benchmark)
+    BeginMethod(LogMessage)
+    coreName = f'{name}.{netType}.{benchmark}'
+    nameHF='{coreName}.{extension}'.format(coreName=coreName,extension='h5')
     if (not exists( GetOutputDataFileFullPath(nameHF)) or (overwriteModel == True)):    
         modelNeuralNework = util.build_ml_model(input_size=size_in, output_size=size_out, hidden=hidden, name='MLP')
 
@@ -120,12 +113,12 @@ def BuildTrainPrintSaveModelNeuralNetwork(hidden,name, size_in ,size_out, tr_in,
         #util.plot_training_history(historyNeuralNework, figsize=figsize)
         #util.print_ml_metrics(modelNeuralNework, tr_in, tr_out, 'training')
         #util.print_ml_metrics(modelNeuralNework, ts_in, ts_out, 'test')
-        fullpathh5,fullpathjson,fullPath = util.save_ml_model_with_winfolder(se.dataOutputFolder ,modelNeuralNework, name)
+        fullpathh5,fullpathjson,fullPath = util.save_ml_model_with_winfolder(se.dataOutputFolder ,modelNeuralNework, coreName)
         size = os.path.getsize(fullpathh5)
-        row=tmf.getString(name,"reference",starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed,size)
-        realName = f'{name}_reference'
-        tmf.save(GetOutputDataFileFullPath(realName),row)
-
+        row=tmf.getString(name,netType,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed,size)
+        #realMetricsName = f'{name}.{netType}.{benchmark}'
+        tmf.save(name,netType,benchmark,row)
+        
         starttime = datetime.datetime.now()
 
         # Obtain the predictions
@@ -139,13 +132,13 @@ def BuildTrainPrintSaveModelNeuralNetwork(hidden,name, size_in ,size_out, tr_in,
 
         endtime = datetime.datetime.now()
         elapsed = int((endtime - starttime).total_seconds() * 1000)
-        row=emf.getString(name,"reference",[accuracyNeuralNetwork[0],accuracyNeuralNetwork[1]],[0],[0,0],rmse,mae,r2,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
-        emf.save(GetOutputDataFileFullPath(realName),row)
+        row=emf.getString(name,netType,[accuracyNeuralNetwork[0],accuracyNeuralNetwork[1]],[0],[0,0],rmse,mae,r2,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
+        emf.save(name,netType,benchmark,row)
 
     else:
         print('No execution')
     
-    EndMethod('{functionName} : {name}'.format(functionName=functionName ,name=name))
+    EndMethod(LogMessage)
 
 def Normalize(value,lb,ub):
      n = (value - lb) / (ub - lb)
@@ -312,17 +305,20 @@ def GetTheData(benchmark):
 
 # TensorFlow Model Optimization Toolkit - TMOT    
 # https://www.tensorflow.org/model_optimization/guide/pruning/pruning_with_keras
-def PruningNeuralNetwork(name,tr_in,tr_out,ts_in,ts_out):
+def PruningNeuralNetwork(name,benchmark,tr_in,tr_out,ts_in,ts_out):
     functionName=inspect.stack()[0][3]
-    BeginMethod('{functionName} : {name}'.format(functionName=functionName ,name=name))
+    netType = 'pruning'
+    LogMessage = '{functionName} : {name} {netType} {benchmark}'.format(functionName=functionName ,name=name, netType=netType,benchmark=benchmark)
+    BeginMethod(LogMessage)
 
-
+    
     numrows = tr_in.shape[0]
     end_stepConfig = np.ceil(numrows / batch_sizeConfig).astype(np.int32) * epochConfig
     # Compress
     
     # BASELINE
-    model = util.load_ml_model_with_winfolder(se.dataOutputFolder,name)
+    coreName = f'{name}.{netType}.{benchmark}'
+    model = util.load_ml_model_with_winfolder(se.dataOutputFolder,f'{name}.{REFERENCE}.{benchmark}')
 
     model.summary()
 
@@ -360,14 +356,14 @@ def PruningNeuralNetwork(name,tr_in,tr_out,ts_in,ts_out):
       print(layer.get_weights()[1]) # biases
     print("###################")
 
-    realName = f'{name}_{PRUNING}'
+    nameHF='{coreName}.{extension}'.format(coreName=coreName,extension='h5')
     model_for_export = tfmot.sparsity.keras.strip_pruning(model_for_pruning)
-    fullpathh5 = GetOutputDataFileFullPath(f'{realName}.h5')
+    fullpathh5 = pf.GetOutputDataFileFullPath(nameHF)
     tf.keras.models.save_model(model_for_export, fullpathh5, include_optimizer=False)
 
     size = os.path.getsize(fullpathh5)
-    row=tmf.getString(name,f'{PRUNING}',starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed,size)
-    tmf.save(GetOutputDataFileFullPath(realName),row)
+    row=tmf.getString(name,netType,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed,size)
+    tmf.save(name,netType,benchmark,row)
     
      
     # evaluate metrics
@@ -386,17 +382,19 @@ def PruningNeuralNetwork(name,tr_in,tr_out,ts_in,ts_out):
 
     endtime = datetime.datetime.now()
     elapsed = int((endtime - starttime).total_seconds() * 1000)
-    row=emf.getString(name,f'{PRUNING}',[accuracy[0],accuracy[1]],[0],[0,0],rmse,mae,r2,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
-    emf.save(GetOutputDataFileFullPath(realName),row)
+    row=emf.getString(name,netType,[accuracy[0],accuracy[1]],[0],[0,0],rmse,mae,r2,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
+    emf.save(name,netType,benchmark,row)
     
-    EndMethod('{functionName} : {name}'.format(functionName=functionName ,name=name))
+    EndMethod(LogMessage)
 
 def ExecuteCombinatorialOptimizationConvolution(keras_model,modelName,netType,boundaries,timeMax,errorMax,size_in):
     functionName=inspect.stack()[0][3]
     benchmark = 'Convolution'
-    BeginMethod('{functionName} : {benchmark} {netType}'.format(functionName=functionName , benchmark=benchmark,netType=netType))
-   
 
+    LogMessage = '{functionName} : {modelName} {netType} {benchmark}'.format(functionName=functionName ,modelName=modelName, netType=netType,benchmark=benchmark)
+    BeginMethod(LogMessage)
+   
+    
     variables = ['var_0','var_1','var_2','var_3','g100','pc','vm','error','time','memory_mean','memory_peak']
 
     #timeMax = 100
@@ -445,75 +443,27 @@ def ExecuteCombinatorialOptimizationConvolution(keras_model,modelName,netType,bo
 
     vin = [X['var_0'], X['var_1'], X['var_2'], X['var_3'], X['g100'] ,X['pc'], X['vm'] ]
     vout = [X['error'], X['time'], X['memory_mean'] , X['memory_peak'] ]
-    util.encode(bkd, nn, slv, vin, vout, f'nn')
-
-
-    SolveCombinatorialOptimization(slv,X,boundaries,modelName,functionName,variables,benchmark)
-
-    """
-    # Set a time limit
-    if tlim is not None:
-        slv.SetTimeLimit(tlim * 1000)
-    # Solve the problem
     starttime = datetime.datetime.now()
-    status = slv.Solve()
+    # Encode in optimization problem
+    util.encode(bkd, nn, slv, vin, vout, 'nn')
     endtime = datetime.datetime.now()
     elapsed = int((endtime - starttime).total_seconds() * 1000)
-    # Return the result
-    res = None
-    closed = False
 
-    if status == pywraplp.Solver.OPTIMAL :
-        print('OPTIMAL')
-        res = {}
-        for k, x in X.items():
-            res[k] = x.solution_value()
-        closed = True   
-    elif status == pywraplp.Solver.FEASIBLE :
-        print('FEASIBLE')
-        res = {}
-        for k, x in X.items():
-            res[k] = x.solution_value()
-        closed = True
-    elif status == pywraplp.Solver.INFEASIBLE :
-        print('INFEASIBLE')
-        
-    elif status == pywraplp.Solver.UNBOUNDED :
-        print('UNBOUNDED')
-        
-    elif status == pywraplp.Solver.ABNORMAL :
-        print('ABNORMAL')
-        
-    elif status == pywraplp.Solver.NOT_SOLVED :
-        print('NOT_SOLVED')
-        
-    elif status == pywraplp.Solver.UNKNOWN :
-        print('UNKNOWN')
-        
-    else :
-        raise Exception('Unknown status')
+    #realName = cmf.getOperationNameEncoder(modelName,netType,benchmark)
+    #fullpath = GetOutputDataFileFullPath(realName)
+    content  = cmf.getStringEncoder(modelName,netType,benchmark,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
+    cmf.saveEncoder(modelName,netType,benchmark,content)
 
-    if res is not None :  
-        print('Normalized values')
-        print(res)
-        
-        den={}
-        for v in variables:
-            den[v] = Denormalize(res[v],boundaries[v]['lb'],boundaries[v]['ub'])
+    SolveCombinatorialOptimization(slv,X,boundaries,modelName,netType,variables,benchmark)
 
-        print('Denormalized values')
-        print(den)     
+    EndMethod(LogMessage)    
 
 
-    print(f'Problem closed: {closed}' )
-    EndMethod('{functionName} '.format(functionName=functionName ))
-    return res, closed
-    """
-
-
-def ExecuteCombinatorialOptimizationCorrelation(keras_model,boundaries,timeMax,errorMax,size_in):
+def ExecuteCombinatorialOptimizationCorrelation(keras_model,modelName,netType,boundaries,timeMax,errorMax,size_in):
     functionName=inspect.stack()[0][3]
-    BeginMethod('{functionName} '.format(functionName=functionName))
+    benchmark = 'Correlation'
+    LogMessage = '{functionName} : {modelName} {netType} {benchmark}'.format(functionName=functionName ,modelName=modelName, netType=netType,benchmark=benchmark)
+    BeginMethod(LogMessage)
 
     variables = ['var_0','var_1','var_2','var_3','var_4','var_5','var_6','g100','pc','vm','error','time','memory_mean','memory_peak']
 
@@ -566,70 +516,27 @@ def ExecuteCombinatorialOptimizationCorrelation(keras_model,boundaries,timeMax,e
 
     vin = [X['var_0'], X['var_1'], X['var_2'], X['var_3'],X['var_4'], X['var_5'], X['var_6'], X['g100'] ,X['pc'], X['vm'] ]
     vout = [X['error'], X['time'], X['memory_mean'] , X['memory_peak'] ]
-    util.encode(bkd, nn, slv, vin, vout, f'nn')
+    starttime = datetime.datetime.now()
+    # Encode in optimization problem
+    util.encode(bkd, nn, slv, vin, vout, 'nn')
+    endtime = datetime.datetime.now()
+    elapsed = int((endtime - starttime).total_seconds() * 1000)
 
-    """
-    # Set a time limit
-    if tlim is not None:
-        slv.SetTimeLimit(tlim * 1000)
-    # Solve the problem
-    status = slv.Solve()
-    # Return the result
-    res = None
-    closed = False
+    #realName = cmf.getOperationNameEncoder(modelName,netType,benchmark)
+    #fullpath = GetOutputDataFileFullPath(realName)
+    content  = cmf.getStringEncoder(modelName,netType,benchmark,boundaries,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
+    cmf.saveEncoder(modelName,netType,benchmark,content)
 
-    if status == pywraplp.Solver.OPTIMAL :
-        print('OPTIMAL')
-        res = {}
-        for k, x in X.items():
-            res[k] = x.solution_value()
-        closed = True   
-    elif status == pywraplp.Solver.FEASIBLE :
-        print('FEASIBLE')
-        res = {}
-        for k, x in X.items():
-            res[k] = x.solution_value()
-        closed = True
-    elif status == pywraplp.Solver.INFEASIBLE :
-        print('INFEASIBLE')
-        
-    elif status == pywraplp.Solver.UNBOUNDED :
-        print('UNBOUNDED')
-        
-    elif status == pywraplp.Solver.ABNORMAL :
-        print('ABNORMAL')
-        
-    elif status == pywraplp.Solver.NOT_SOLVED :
-        print('NOT_SOLVED')
-        
-    elif status == pywraplp.Solver.UNKNOWN :
-        print('UNKNOWN')
-        
-    else :
-        raise Exception('Unknown status')
+    SolveCombinatorialOptimization(slv,X,boundaries,modelName,netType,variables,benchmark)
 
-    if res is not None :  
-        print('Normalized values')
-        print(res)
-        
-        den={}
-        for v in variables:
-            den[v] = Denormalize(res[v],boundaries[v]['lb'],boundaries[v]['ub'])
+    EndMethod(LogMessage) 
+    
 
-        print('Denormalized values')
-        print(den)     
-
-
-    print(f'Problem closed: {closed}' )
-    EndMethod('{functionName} '.format(functionName=functionName ))
-    return res, closed
-    """
-    SolveCombinatorialOptimization(slv,X,boundaries,modelName,functionName,variables,benchmark)
-
-
-def ExecuteCombinatorialOptimizationSaxpy(keras_model,boundaries,timeMax,errorMax,size_in):
+def ExecuteCombinatorialOptimizationSaxpy(keras_model,modelName,netType,boundaries,timeMax,errorMax,size_in):
     functionName=inspect.stack()[0][3]
-    BeginMethod('{functionName} '.format(functionName=functionName))
+    benchmark = 'Saxpy'
+    LogMessage = '{functionName} : {modelName} {netType} {benchmark}'.format(functionName=functionName ,modelName=modelName, netType=netType,benchmark=benchmark)
+    BeginMethod(LogMessage)
 
     variables = ['var_0','var_1','var_2','g100','pc','vm','error','time','memory_mean','memory_peak']
 
@@ -678,68 +585,24 @@ def ExecuteCombinatorialOptimizationSaxpy(keras_model,boundaries,timeMax,errorMa
 
     vin = [X['var_0'], X['var_1'], X['var_2'], X['g100'] ,X['pc'], X['vm'] ]
     vout = [X['error'], X['time'], X['memory_mean'] , X['memory_peak'] ]
-    util.encode(bkd, nn, slv, vin, vout, f'nn')
 
-    """
-    # Set a time limit
-    if tlim is not None:
-        slv.SetTimeLimit(tlim * 1000)
-    # Solve the problem
-    status = slv.Solve()
-    # Return the result
-    res = None
-    closed = False
+    starttime = datetime.datetime.now()
+    # Encode in optimization problem
+    util.encode(bkd, nn, slv, vin, vout, 'nn')
+    endtime = datetime.datetime.now()
+    elapsed = int((endtime - starttime).total_seconds() * 1000)
 
-    if status == pywraplp.Solver.OPTIMAL :
-        print('OPTIMAL')
-        res = {}
-        for k, x in X.items():
-            res[k] = x.solution_value()
-        closed = True   
-    elif status == pywraplp.Solver.FEASIBLE :
-        print('FEASIBLE')
-        res = {}
-        for k, x in X.items():
-            res[k] = x.solution_value()
-        closed = True
-    elif status == pywraplp.Solver.INFEASIBLE :
-        print('INFEASIBLE')
-        
-    elif status == pywraplp.Solver.UNBOUNDED :
-        print('UNBOUNDED')
-        
-    elif status == pywraplp.Solver.ABNORMAL :
-        print('ABNORMAL')
-        
-    elif status == pywraplp.Solver.NOT_SOLVED :
-        print('NOT_SOLVED')
-        
-    elif status == pywraplp.Solver.UNKNOWN :
-        print('UNKNOWN')
-        
-    else :
-        raise Exception('Unknown status')
+    #realName = cmf.getOperationNameEncoder(modelName,netType,benchmark)
+    #fullpath = GetOutputDataFileFullPath(realName)
+    content  = cmf.getStringEncoder(modelName,netType,benchmark,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
+    cmf.saveEncoder(modelName,netType,benchmark,content)
+  
+    SolveCombinatorialOptimization(slv,X,boundaries,modelName,netType,variables,benchmark)
 
-    if res is not None :  
-        print('Normalized values')
-        print(res)
-        
-        den={}
-        for v in variables:
-            den[v] = Denormalize(res[v],boundaries[v]['lb'],boundaries[v]['ub'])
+    EndMethod(LogMessage) 
+    
 
-        print('Denormalized values')
-        print(den)     
-
-
-    print(f'Problem closed: {closed}' )
-    EndMethod('{functionName} '.format(functionName=functionName ))
-    return res, closed
-    """
-    SolveCombinatorialOptimization(slv,X,boundaries,modelName,functionName,variables,benchmark)
-
-
-def SolveCombinatorialOptimization(solver,X,boundaries,modelName,functionName,variables,benckmark):
+def SolveCombinatorialOptimization(solver,X,boundaries,modelName,netType,variables,benchmark):
 
     tlim=1000
     # Set a time limit
@@ -754,14 +617,17 @@ def SolveCombinatorialOptimization(solver,X,boundaries,modelName,functionName,va
 
     closed = False
     normalizedvalue = None
+    denormalizedvalue={}
 
     if status == pywraplp.Solver.OPTIMAL :
         sstatus = 'OPTIMAL'
+        normalizedvalue = {}
         for k, x in X.items():
             normalizedvalue[k] = x.solution_value()
         closed = True   
     elif status == pywraplp.Solver.FEASIBLE :
         sstatus = 'FEASIBLE'
+        normalizedvalue = {}
         for k, x in X.items():
             normalizedvalue[k] = x.solution_value()
         closed = True
@@ -787,20 +653,37 @@ def SolveCombinatorialOptimization(solver,X,boundaries,modelName,functionName,va
         print('Normalized values')
         print(normalizedvalue)
         
-        denormalizedvalue={}
+
         for v in variables:
             denormalizedvalue[v] = Denormalize(normalizedvalue[v],boundaries[v]['lb'],boundaries[v]['ub'])
-
+            
         print('Denormalized values')
         print(denormalizedvalue)     
 
 
     print(f'Problem closed: {closed} , status : {sstatus} ')
+    # coreName = f'{modelName}.{netType}.{benchmark}'
+    #realName = cmf.getOperationNameSolver(modelName,netType,benchmark)
+    #fullpath = GetOutputDataFileFullPath(realName)
+    content  = cmf.getStringSolver(modelName,netType,benchmark,boundaries,sstatus,normalizedvalue,denormalizedvalue,closed,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
+    cmf.saveSolver(modelName,netType,benchmark,content)
+
+    EndMethod('{functionName} '.format(functionName=netType ))
+    return normalizedvalue, closed
 
 
-    content = cmf.getString(modelName,functionName,benckmark,boundaries,sstatus,normalizedvalue,denormalizedvalue,closed,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
-    cmf.save(modelName,functionName,benckmark,content)
+def CreateSummary(nns, netTypes,benchmarks):
 
-
-    EndMethod('{functionName} '.format(functionName=functionName ))
-    return res, closed
+    df = pd.DataFrame()
+    row = 0
+    
+    for modelName in nns:
+        for netType in netTypes:
+            for benchmark in benchmarks:
+                df['metrics',row] = 'train'
+                column = f'{modelName}.{netType}.{benchmark}'
+                
+                fullPath = tmf.getFullPath(modelName,netType,benchmark)
+                item = mf.getItem(fullPath,'elapsed')
+                
+                df[column,row] = item

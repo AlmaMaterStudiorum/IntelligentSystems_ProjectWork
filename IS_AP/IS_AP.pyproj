@@ -36,6 +36,7 @@
     <Compile Include="TransprecisionComputing\coptimetricsfile.py" />
     <Compile Include="TransprecisionComputing\DescrizioneData.txt" />
     <Compile Include="TransprecisionComputing\evaluatemetricsfile.py" />
+    <Compile Include="TransprecisionComputing\pathfiles.py" />
     <Compile Include="TransprecisionComputing\main.py" />
     <Compile Include="TransprecisionComputing\metricsfile.py" />
     <Compile Include="TransprecisionComputing\specificenv.py" />

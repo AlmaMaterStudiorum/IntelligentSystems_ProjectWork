@@ -23,9 +23,9 @@ def RunTPC001():
                 'nn2' : [thick,thick,thick,thick,thick,thick,thick,thick]       
           }
 
-    nameNN = 'nn1'
     benchmarks = ['Convolution','Correlation','Saxpy']
     benchmarksMod = ['Convolution','Saxpy']
+    netTypes = [support.REFERENCE,support.PRUNING]
 
     topologies ={ 'Convolution'  :  {'size_in' : 7  , 'size_out' : 4},
                   'Correlation'  :  {'size_in' : 10 , 'size_out' : 4},
@@ -36,8 +36,8 @@ def RunTPC001():
     # benchmark = benchmarks[currentBenchmark]
     timeMax = 100
     errorMax = 0.01
-
-    startFromZero = True
+    
+    startFromZero = False
 
     if startFromZero == True:
         support.CleanFolder(se.dataOutputFolder)
@@ -50,36 +50,36 @@ def RunTPC001():
         tr_in,tr_out,ts_in,ts_out,boundaries = support.GetTheData(benchmark)
 
         for nn in nns:
-            nameNN = f'{nn}_{benchmark}'
+
             hidden = nns[nn]
 
             if startFromZero == True:
 
-                support.BuildTrainPrintSaveModelNeuralNetwork(hidden,nameNN,topologies[benchmark]['size_in'],topologies[benchmark]['size_out'],tr_in,tr_out,ts_in,ts_out)
+                support.BuildTrainPrintSaveModelNeuralNetwork(hidden,nn,benchmark,topologies[benchmark]['size_in'],topologies[benchmark]['size_out'],tr_in,tr_out,ts_in,ts_out)
 
-                support.PruningNeuralNetwork(nameNN,tr_in,tr_out,ts_in,ts_out)
+                support.PruningNeuralNetwork(nn,benchmark,tr_in,tr_out,ts_in,ts_out)
     
      
-            modelReference = util.load_ml_model_with_winfolder(se.dataOutputFolder,nameNN)
+            modelReference = util.load_ml_model_with_winfolder(se.dataOutputFolder,f'{nn}.{support.REFERENCE}.{benchmark}')
 
-            modelPruning = tf.keras.models.load_model(support.GetOutputDataFileFullPath(f'{nameNN}_{support.PRUNING}.h5'))
+            modelPruning = tf.keras.models.load_model(support.GetOutputDataFileFullPath(f'{nn}.{support.PRUNING}.{benchmark}.h5'))
 
 
             if benchmark == 'Convolution':
-                support.ExecuteCombinatorialOptimizationConvolution(modelReference,nn,'reference',boundaries,timeMax,errorMax,topologies[benchmark]['size_in'])
+                support.ExecuteCombinatorialOptimizationConvolution(modelReference,nn,support.REFERENCE,boundaries,timeMax,errorMax,topologies[benchmark]['size_in'])
 
-                support.ExecuteCombinatorialOptimizationConvolution(modelPruning,nn,'pruning',boundaries,timeMax,errorMax,topologies[benchmark]['size_in'])
+                support.ExecuteCombinatorialOptimizationConvolution(modelPruning,nn,support.PRUNING,boundaries,timeMax,errorMax,topologies[benchmark]['size_in'])
             elif benchmark == 'Correlation':
-                support.ExecuteCombinatorialOptimizationCorrelation(modelReference,nn,'reference',boundaries,timeMax,errorMax,topologies[benchmark]['size_in'])
+                support.ExecuteCombinatorialOptimizationCorrelation(modelReference,nn,support.REFERENCE,boundaries,timeMax,errorMax,topologies[benchmark]['size_in'])
 
-                support.ExecuteCombinatorialOptimizationCorrelation(modelPruning,nn,'pruning',boundaries,timeMax,errorMax,topologies[benchmark]['size_in'])
+                support.ExecuteCombinatorialOptimizationCorrelation(modelPruning,nn,support.PRUNING,boundaries,timeMax,errorMax,topologies[benchmark]['size_in'])
             elif benchmark == 'Saxpy':
-                support.ExecuteCombinatorialOptimizationSaxpy(modelReference,nn,'reference',boundaries,timeMax,errorMax,topologies[benchmark]['size_in'])
+                support.ExecuteCombinatorialOptimizationSaxpy(modelReference,nn,support.REFERENCE,boundaries,timeMax,errorMax,topologies[benchmark]['size_in'])
 
-                support.ExecuteCombinatorialOptimizationSaxpy(modelPruning,nn,'pruning',boundaries,timeMax,errorMax,topologies[benchmark]['size_in'])
+                support.ExecuteCombinatorialOptimizationSaxpy(modelPruning,nn,support.PRUNING,boundaries,timeMax,errorMax,topologies[benchmark]['size_in'])
 
-
-
+    support.CreateSummary(nns,netTypes,benchmarksMod)
+    
 
 
 # RUNNING AREA

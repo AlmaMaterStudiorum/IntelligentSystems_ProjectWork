@@ -237,7 +237,7 @@ def train_ml_model2(model, x_train, y_train,x_test,y_test, epochs=20,
     # Train the model
     history = model.fit(x_train, y_train, validation_split=validation_split,
                      callbacks=cb, batch_size=batch_size,
-                     epochs=epochs, verbose=verbose,
+                     epochs=epochs, verbose='auto',
                      sample_weight=sample_weight)
     accuracy = model.evaluate(x_test, y_test, verbose=0)
     

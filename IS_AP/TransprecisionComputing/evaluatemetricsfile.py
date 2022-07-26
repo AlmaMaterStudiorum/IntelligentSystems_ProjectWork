@@ -2,6 +2,7 @@ import json
 import copy 
 import os
 import metricsfile as mf
+import pathfiles as pf
 
 structConst={
     "modelName": "", 
@@ -20,12 +21,17 @@ structConst={
 }
 fileNameExtension = 'evaluate.metrics.json'
 
-def getOperationName(fileName):
-    return f'{fileName}.{fileNameExtension}'
+def getFileName(modelName,netType,benchmark):
+    return f'{modelName}.{netType}.{benchmark}.{fileNameExtension}'
 
-def save(fileName,content):
-    realName = getOperationName(fileName)
-    mf.save(realName,content)
+def getFullPath(modelName,netType,benchmark):
+    fileName = getFileName(modelName,netType,benchmark)
+    fullpath = pf.GetOutputDataFileFullPath(fileName)
+    return fullpath
+
+def save(modelName,netType,benchmark,content):
+    fullpath = getFullPath(modelName,netType,benchmark)
+    mf.save(fullpath,content)
 
 def getString(modelName,functionName,mlaccuracy,kerasaccuracy,intaccuracy,rmse,mae,r2,startEvaluateDate,endEvaluateDate,evaluateTime):
     content =copy.deepcopy(structConst)

@@ -2,43 +2,83 @@ import json
 import copy 
 import os
 import metricsfile as mf
+import pathfiles as pf
 
-structConst={
-    "modelName": "", 
-    "functionName":"", 
-    "benckmark":"",
+structConstEncoder={
+    "modelName" : "", 
+    "netType"   : "", 
+    "benchmark" : "",   
+    "startDate" : "", 
+    "endDate"   : "",
+    "elapsed"   : ""
+}
+
+structConstSolver={
+    "modelName" : "", 
+    "netType"   :"", 
+    "benchmark" :"",
     "boundaries": "",
-
-    "status": "",
+    "status"    : "",
     "normalizedvalue": "",
     "denormalizedvalue": "", 
-    "closed": "",
-    "startEvaluateDate": "", 
-    "endEvaluateDate": "",
-    "evaluateTime": ""
+    "closed"    : "",
+    "startDate" : "", 
+    "endDate"   : "",
+    "elapsed"   : ""
 }
-fileNameExtension = 'copti.metrics.json'
 
-def getOperationName(fileName,functionName,benckmark):
-    return f'{fileName}.{functionName}.{benckmark}.{fileNameExtension}'
+fileNameExtensionEncoder = 'coencoder.metrics.json'
+fileNameExtensionSolver  = 'cosolver.metrics.json'
 
-def save(fileName,functionName,benckmark,content):
-    realName = getOperationName(fileName,functionName,benckmark)
-    mf.save(realName,content)
+def getFileNameEncoder(modelName,netType,benchmark):
+    return f'{modelName}.{netType}.{benchmark}.{fileNameExtensionEncoder}'
 
-def getString(modelName,functionName,benckmark,boundaries,status,normalizedvalue,denormalizedvalue,closed,startEvaluateDate,endEvaluateDate,evaluateTime):
-    content =copy.deepcopy(structConst)
+def getFullPathEncoder(modelName,netType,benchmark):
+    fileName = getFileNameEncoder(modelName,netType,benchmark)
+    fullpath = pf.GetOutputDataFileFullPath(fileName)
+    return fullpath
+
+def saveEncoder(modelName,netType,benchmark,content):
+    fullpath = getFullPathSolver(modelName,netType,benchmark)
+    mf.save(fullpath,content)
+
+def getStringEncoder(modelName,netType,benchmark,startDate,endDate,elapsed):
+    content =copy.deepcopy(structConstSolver)
     content["modelName"]=modelName
-    content["functionName"]=functionName
-    content["benckmark"]=benckmark
+    content["netType"]=netType
+    content["benchmark"]=benchmark
+    content["startDate"]=startDate
+    content["endDate"]=endDate
+    content["elapsed"]=elapsed
+    return content
+
+
+def getFileNameSolver(modelName,netType,benchmark):
+    return f'{modelName}.{netType}.{benchmark}.{fileNameExtensionSolver}'
+
+
+def getFullPathSolver(modelName,netType,benchmark):
+    fileName = getFileNameSolver(modelName,netType,benchmark)
+    fullpath = pf.GetOutputDataFileFullPath(fileName)
+    return fullpath
+    
+def saveSolver(modelName,netType,benchmark,content):
+    fullpath = getFullPathSolver(modelName,netType,benchmark)
+    mf.save(fullpath,content)
+
+def getStringSolver(modelName,netType,benchmark,boundaries,status,normalizedvalue,denormalizedvalue,closed,startDate,endDate,elapsed):
+    content =copy.deepcopy(structConstSolver)
+    content["modelName"]=modelName
+    content["netType"]=netType
+    content["benchmark"]=benchmark
     content["boundaries"]=boundaries
     content["status"]=status
     content["normalizedvalue"]=normalizedvalue
     content["denormalizedvalue"]=denormalizedvalue
     content["closed"]=closed
-    content["startEvaluateDate"]=startEvaluateDate
-    content["endEvaluateDate"]=endEvaluateDate
-    content["evaluateTime"]=evaluateTime
+    content["startDate"]=startDate
+    content["endDate"]=endDate
+    content["elapsed"]=elapsed
     return content
 
 
