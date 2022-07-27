@@ -39,7 +39,7 @@ def getFullPathEncoder(modelName,netType,benchmark):
     return fullpath
 
 def saveEncoder(modelName,netType,benchmark,content):
-    fullpath = getFullPathSolver(modelName,netType,benchmark)
+    fullpath = getFullPathEncoder(modelName,netType,benchmark)
     mf.save(fullpath,content)
 
 def getStringEncoder(modelName,netType,benchmark,startDate,endDate,elapsed):

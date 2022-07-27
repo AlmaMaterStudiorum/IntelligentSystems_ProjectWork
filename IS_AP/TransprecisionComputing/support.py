@@ -102,7 +102,7 @@ def BuildTrainPrintSaveModelNeuralNetwork(hidden,name,benchmark, size_in ,size_o
     BeginMethod(LogMessage)
     coreName = f'{name}.{netType}.{benchmark}'
     nameHF='{coreName}.{extension}'.format(coreName=coreName,extension='h5')
-    if (not exists( GetOutputDataFileFullPath(nameHF)) or (overwriteModel == True)):    
+    if (not exists( pf.GetOutputDataFileFullPath(nameHF)) or (overwriteModel == True)):    
         modelNeuralNework = util.build_ml_model(input_size=size_in, output_size=size_out, hidden=hidden, name='MLP')
 
         starttime = datetime.datetime.now()
@@ -155,15 +155,15 @@ def GetTheData(benchmark):
     fileNamepc = f'{benchmark}_pc.csv'
     fileNamevm = f'{benchmark}_vm.csv'
 
-    dfg100 = pd.read_csv(GetInputDataFileFullPath(fileNameg100))
+    dfg100 = pd.read_csv(pf.GetInputDataFileFullPath(fileNameg100))
     dfg100['g100'] = 1
     dfg100['pc'] = 0
     dfg100['vm'] = 0
-    dfpc = pd.read_csv(GetInputDataFileFullPath(fileNamepc))
+    dfpc = pd.read_csv(pf.GetInputDataFileFullPath(fileNamepc))
     dfpc['g100'] = 0
     dfpc['pc'] = 1
     dfpc['vm'] = 0
-    dfvm = pd.read_csv(GetInputDataFileFullPath(fileNamevm))
+    dfvm = pd.read_csv(pf.GetInputDataFileFullPath(fileNamevm))
     dfvm['g100'] = 0
     dfvm['pc'] = 0
     dfvm['vm'] = 1
@@ -449,8 +449,6 @@ def ExecuteCombinatorialOptimizationConvolution(keras_model,modelName,netType,bo
     endtime = datetime.datetime.now()
     elapsed = int((endtime - starttime).total_seconds() * 1000)
 
-    #realName = cmf.getOperationNameEncoder(modelName,netType,benchmark)
-    #fullpath = GetOutputDataFileFullPath(realName)
     content  = cmf.getStringEncoder(modelName,netType,benchmark,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
     cmf.saveEncoder(modelName,netType,benchmark,content)
 
@@ -522,8 +520,6 @@ def ExecuteCombinatorialOptimizationCorrelation(keras_model,modelName,netType,bo
     endtime = datetime.datetime.now()
     elapsed = int((endtime - starttime).total_seconds() * 1000)
 
-    #realName = cmf.getOperationNameEncoder(modelName,netType,benchmark)
-    #fullpath = GetOutputDataFileFullPath(realName)
     content  = cmf.getStringEncoder(modelName,netType,benchmark,boundaries,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
     cmf.saveEncoder(modelName,netType,benchmark,content)
 
@@ -592,8 +588,6 @@ def ExecuteCombinatorialOptimizationSaxpy(keras_model,modelName,netType,boundari
     endtime = datetime.datetime.now()
     elapsed = int((endtime - starttime).total_seconds() * 1000)
 
-    #realName = cmf.getOperationNameEncoder(modelName,netType,benchmark)
-    #fullpath = GetOutputDataFileFullPath(realName)
     content  = cmf.getStringEncoder(modelName,netType,benchmark,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
     cmf.saveEncoder(modelName,netType,benchmark,content)
   
@@ -662,9 +656,7 @@ def SolveCombinatorialOptimization(solver,X,boundaries,modelName,netType,variabl
 
 
     print(f'Problem closed: {closed} , status : {sstatus} ')
-    # coreName = f'{modelName}.{netType}.{benchmark}'
-    #realName = cmf.getOperationNameSolver(modelName,netType,benchmark)
-    #fullpath = GetOutputDataFileFullPath(realName)
+
     content  = cmf.getStringSolver(modelName,netType,benchmark,boundaries,sstatus,normalizedvalue,denormalizedvalue,closed,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
     cmf.saveSolver(modelName,netType,benchmark,content)
 
@@ -676,14 +668,59 @@ def CreateSummary(nns, netTypes,benchmarks):
 
     df = pd.DataFrame()
     row = 0
+    metrics = ['train','evaluate','accuracy','rmse','encode','solver','status']
+
+    for i in range(len(metrics)) :
+        df.loc[i,'metrics'] = metrics[i]
+    #df.loc[0,'metrics'] = metrics[0]
+    #df.loc[1,'metrics'] = metrics[1]
+    #df.loc[2,'metrics'] = metrics[2]
+    #df.loc[3,'metrics'] = metrics[3]
+    #df.loc[4,'metrics'] = metrics[4]
+    #df.loc[5,'metrics'] = metrics[5]
+    #df.loc[6,'metrics'] = metrics[6]
     
     for modelName in nns:
-        for netType in netTypes:
-            for benchmark in benchmarks:
-                df['metrics',row] = 'train'
-                column = f'{modelName}.{netType}.{benchmark}'
-                
-                fullPath = tmf.getFullPath(modelName,netType,benchmark)
-                item = mf.getItem(fullPath,'elapsed')
-                
-                df[column,row] = item
+        for benchmark in benchmarks:
+            for netType in netTypes:            
+                    column = f'{modelName}.{netType}.{benchmark}'
+                    row = 0
+
+                    fullPath = tmf.getFullPath(modelName,netType,benchmark)
+                    item = mf.getItem(fullPath,'elapsed')               
+                    df.loc[row,column] = item
+                    row+=1
+
+                    fullPath = emf.getFullPath(modelName,netType,benchmark)
+                    item = mf.getItem(fullPath,'elapsed')                
+                    df.loc[row,column] = item
+                    row+=1
+
+                    fullPath = emf.getFullPath(modelName,netType,benchmark)
+                    item = mf.getItem(fullPath,'accuracy')                
+                    df.loc[row,column] = item
+                    row+=1
+
+                    fullPath = emf.getFullPath(modelName,netType,benchmark)
+                    item = mf.getItem(fullPath,'rmse')                
+                    df.loc[row,column] = item
+                    row+=1
+
+                    fullPath = cmf.getFullPathEncoder(modelName,netType,benchmark)
+                    item = mf.getItem(fullPath,'elapsed')               
+                    df.loc[row,column] = item
+                    row+=1
+
+                    fullPath = cmf.getFullPathSolver(modelName,netType,benchmark)
+                    item = mf.getItem(fullPath,'elapsed')               
+                    df.loc[row,column] = item
+                    row+=1
+                    
+                    item = mf.getItem(fullPath,'status')               
+                    df.loc[row,column] = item
+                    row+=1
+    
+         
+    filePath = pf.GetOutputDataFileFullPath('run.summary.csv')               
+
+    df.to_csv(filePath)  

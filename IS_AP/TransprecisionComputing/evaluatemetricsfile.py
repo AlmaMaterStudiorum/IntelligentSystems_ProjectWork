@@ -15,9 +15,9 @@ structConst={
     "rmse": "", 
     "mae": "",
     "r2": "", 
-    "startEvaluateDate": "", 
-    "endEvaluateDate": "",
-    "evaluateTime": ""
+    "startDate": "", 
+    "endDate": "",
+    "elapsed": ""
 }
 fileNameExtension = 'evaluate.metrics.json'
 
@@ -33,7 +33,7 @@ def save(modelName,netType,benchmark,content):
     fullpath = getFullPath(modelName,netType,benchmark)
     mf.save(fullpath,content)
 
-def getString(modelName,functionName,mlaccuracy,kerasaccuracy,intaccuracy,rmse,mae,r2,startEvaluateDate,endEvaluateDate,evaluateTime):
+def getString(modelName,functionName,mlaccuracy,kerasaccuracy,intaccuracy,rmse,mae,r2,startDate,endDate,elapsed):
     content =copy.deepcopy(structConst)
     content["modelName"]=modelName
     content["functionName"]=functionName
@@ -45,9 +45,9 @@ def getString(modelName,functionName,mlaccuracy,kerasaccuracy,intaccuracy,rmse,m
     content["rmse"]=rmse
     content["mae"]=mae
     content["r2"]=r2
-    content["startEvaluateDate"]=startEvaluateDate
-    content["endEvaluateDate"]=endEvaluateDate
-    content["evaluateTime"]=evaluateTime
+    content["startDate"]=startDate
+    content["endDate"]=endDate
+    content["elapsed"]=elapsed
     return content
 
 

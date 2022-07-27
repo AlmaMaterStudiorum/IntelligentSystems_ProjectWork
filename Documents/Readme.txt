@@ -1,5 +1,4 @@
-# IntelligentSystems_ProjectWork
-Project Work on Intelligent Systems 2021/2022
+
 Lo scopo di questa attività di progetto è ricercare delle tecniche di compressioni di reti neurali per ridurre la dimensione 
 e la velocità di esecuzione delle reti in modalità inferenza e contemporaneamente valutare l'impatto della differenza tra la versione di base nelle reti con la versione compressa 
 quando è inserita in un problema di ottimizzazione combinatoria utilizzando la tecnica EML.
@@ -13,5 +12,3 @@ Al contrario il pruning del modello di baseline è codificabile come modello di 
 - Preparazione al progetto (SIR) (TBD)
 - Summary delle metriche
 - Valutazioni
-
- 
