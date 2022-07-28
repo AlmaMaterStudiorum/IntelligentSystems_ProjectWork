@@ -47,6 +47,7 @@ overwriteModel = True
 splittingData = 0.8
 epochConfig = 100
 batch_sizeConfig = 32
+patienceConfig=3
 
 PRUNING = 'pruning'
 REFERENCE ='reference'
@@ -65,6 +66,8 @@ else:
     figsize=(14, 5)
 
 
+    
+    
 
 def CleanFolder(fullPath):
     for root, dirs, files in os.walk(fullPath):
@@ -73,6 +76,11 @@ def CleanFolder(fullPath):
         for d in dirs:
             shutil.rmtree(os.path.join(root, d))
 
+def CreateOutputRunDataFolder():
+    folder = pf.GetRunDataOutputFolderFullPath()
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+    return folder
 
 def PrintNow():
     now = datetime.datetime.now()
@@ -102,18 +110,18 @@ def BuildTrainPrintSaveModelNeuralNetwork(hidden,name,benchmark, size_in ,size_o
     BeginMethod(LogMessage)
     coreName = f'{name}.{netType}.{benchmark}'
     nameHF='{coreName}.{extension}'.format(coreName=coreName,extension='h5')
-    if (not exists( pf.GetOutputDataFileFullPath(nameHF)) or (overwriteModel == True)):    
+    if (not exists( pf.GetRunDataOutputFileFullPath(nameHF)) or (overwriteModel == True)):    
         modelNeuralNework = util.build_ml_model(input_size=size_in, output_size=size_out, hidden=hidden, name='MLP')
 
         starttime = datetime.datetime.now()
-        historyNeuralNework,accuracyNeuralNetwork = util.train_ml_model2(modelNeuralNework, tr_in, tr_out, ts_in, ts_out, verbose=0, epochs=epochConfig)
+        historyNeuralNework,accuracyNeuralNetwork = util.train_ml_model2(modelNeuralNework, tr_in, tr_out, ts_in, ts_out, verbose=0, epochs=epochConfig,patience=patienceConfig)
         endtime = datetime.datetime.now()
         elapsed = int((endtime - starttime).total_seconds() * 1000)
 
         #util.plot_training_history(historyNeuralNework, figsize=figsize)
         #util.print_ml_metrics(modelNeuralNework, tr_in, tr_out, 'training')
         #util.print_ml_metrics(modelNeuralNework, ts_in, ts_out, 'test')
-        fullpathh5,fullpathjson,fullPath = util.save_ml_model_with_winfolder(se.dataOutputFolder ,modelNeuralNework, coreName)
+        fullpathh5,fullpathjson,fullPath = util.save_ml_model_with_winfolder(pf.GetRunDataOutputFolderFullPath(),modelNeuralNework, coreName)
         size = os.path.getsize(fullpathh5)
         row=tmf.getString(name,netType,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed,size)
         #realMetricsName = f'{name}.{netType}.{benchmark}'
@@ -318,7 +326,7 @@ def PruningNeuralNetwork(name,benchmark,tr_in,tr_out,ts_in,ts_out):
     
     # BASELINE
     coreName = f'{name}.{netType}.{benchmark}'
-    model = util.load_ml_model_with_winfolder(se.dataOutputFolder,f'{name}.{REFERENCE}.{benchmark}')
+    model = util.load_ml_model_with_winfolder(pf.GetRunDataOutputFolderFullPath() ,f'{name}.{REFERENCE}.{benchmark}')
 
     model.summary()
 
@@ -340,7 +348,7 @@ def PruningNeuralNetwork(name,benchmark,tr_in,tr_out,ts_in,ts_out):
     cb = [
       tfmot.sparsity.keras.UpdatePruningStep(),
       tfmot.sparsity.keras.PruningSummaries(log_dir=logdir),
-      callbacks.EarlyStopping(patience=10,restore_best_weights=True)
+      callbacks.EarlyStopping(patience=patienceConfig,restore_best_weights=True)
     ]
   
     # train metrics
@@ -358,7 +366,7 @@ def PruningNeuralNetwork(name,benchmark,tr_in,tr_out,ts_in,ts_out):
 
     nameHF='{coreName}.{extension}'.format(coreName=coreName,extension='h5')
     model_for_export = tfmot.sparsity.keras.strip_pruning(model_for_pruning)
-    fullpathh5 = pf.GetOutputDataFileFullPath(nameHF)
+    fullpathh5 = pf.GetRunDataOutputFileFullPath(nameHF)
     tf.keras.models.save_model(model_for_export, fullpathh5, include_optimizer=False)
 
     size = os.path.getsize(fullpathh5)
@@ -387,7 +395,7 @@ def PruningNeuralNetwork(name,benchmark,tr_in,tr_out,ts_in,ts_out):
     
     EndMethod(LogMessage)
 
-def ExecuteCombinatorialOptimizationConvolution(keras_model,modelName,netType,boundaries,timeMax,errorMax,size_in):
+def ExecuteCombinatorialOptimizationConvolution(keras_model,modelName,netType,boundaries,constrains,size_in):
     functionName=inspect.stack()[0][3]
     benchmark = 'Convolution'
 
@@ -397,11 +405,9 @@ def ExecuteCombinatorialOptimizationConvolution(keras_model,modelName,netType,bo
     
     variables = ['var_0','var_1','var_2','var_3','g100','pc','vm','error','time','memory_mean','memory_peak']
 
-    #timeMax = 100
-    #errorMax = 0.01
-    ErrMax_log = -np.log10(errorMax)
+    ErrMax_log = -np.log10(constrains['error'])
 
-    normTimeMax = Normalize(timeMax,boundaries['time']['lb'],boundaries['time']['ub'])
+    normTimeMax = Normalize(constrains['time'],boundaries['time']['lb'],boundaries['time']['ub'])
     normErrMax_log = Normalize(ErrMax_log,boundaries['error']['lb'],boundaries['error']['ub'])
     
     tlim=100
@@ -457,7 +463,7 @@ def ExecuteCombinatorialOptimizationConvolution(keras_model,modelName,netType,bo
     EndMethod(LogMessage)    
 
 
-def ExecuteCombinatorialOptimizationCorrelation(keras_model,modelName,netType,boundaries,timeMax,errorMax,size_in):
+def ExecuteCombinatorialOptimizationCorrelation(keras_model,modelName,netType,boundaries,constrains,size_in):
     functionName=inspect.stack()[0][3]
     benchmark = 'Correlation'
     LogMessage = '{functionName} : {modelName} {netType} {benchmark}'.format(functionName=functionName ,modelName=modelName, netType=netType,benchmark=benchmark)
@@ -465,11 +471,9 @@ def ExecuteCombinatorialOptimizationCorrelation(keras_model,modelName,netType,bo
 
     variables = ['var_0','var_1','var_2','var_3','var_4','var_5','var_6','g100','pc','vm','error','time','memory_mean','memory_peak']
 
-    #timeMax = 100
-    #errorMax = 0.01
-    ErrMax_log = -np.log10(errorMax)
+    ErrMax_log = -np.log10(constrains['error'])
 
-    normTimeMax = Normalize(timeMax,boundaries['time']['lb'],boundaries['time']['ub'])
+    normTimeMax = Normalize(constrains['time'],boundaries['time']['lb'],boundaries['time']['ub'])
     normErrMax_log = Normalize(ErrMax_log,boundaries['error']['lb'],boundaries['error']['ub'])
     
     tlim=100
@@ -528,7 +532,7 @@ def ExecuteCombinatorialOptimizationCorrelation(keras_model,modelName,netType,bo
     EndMethod(LogMessage) 
     
 
-def ExecuteCombinatorialOptimizationSaxpy(keras_model,modelName,netType,boundaries,timeMax,errorMax,size_in):
+def ExecuteCombinatorialOptimizationSaxpy(keras_model,modelName,netType,boundaries,constrains,size_in):
     functionName=inspect.stack()[0][3]
     benchmark = 'Saxpy'
     LogMessage = '{functionName} : {modelName} {netType} {benchmark}'.format(functionName=functionName ,modelName=modelName, netType=netType,benchmark=benchmark)
@@ -536,11 +540,9 @@ def ExecuteCombinatorialOptimizationSaxpy(keras_model,modelName,netType,boundari
 
     variables = ['var_0','var_1','var_2','g100','pc','vm','error','time','memory_mean','memory_peak']
 
-    #timeMax = 100
-    #errorMax = 0.01
-    ErrMax_log = -np.log10(errorMax)
+    ErrMax_log = -np.log10(constrains['error'])
 
-    normTimeMax = Normalize(timeMax,boundaries['time']['lb'],boundaries['time']['ub'])
+    normTimeMax = Normalize(constrains['time'],boundaries['time']['lb'],boundaries['time']['ub'])
     normErrMax_log = Normalize(ErrMax_log,boundaries['error']['lb'],boundaries['error']['ub'])
     
     tlim=1000
@@ -672,13 +674,6 @@ def CreateSummary(nns, netTypes,benchmarks):
 
     for i in range(len(metrics)) :
         df.loc[i,'metrics'] = metrics[i]
-    #df.loc[0,'metrics'] = metrics[0]
-    #df.loc[1,'metrics'] = metrics[1]
-    #df.loc[2,'metrics'] = metrics[2]
-    #df.loc[3,'metrics'] = metrics[3]
-    #df.loc[4,'metrics'] = metrics[4]
-    #df.loc[5,'metrics'] = metrics[5]
-    #df.loc[6,'metrics'] = metrics[6]
     
     for modelName in nns:
         for benchmark in benchmarks:
@@ -721,6 +716,6 @@ def CreateSummary(nns, netTypes,benchmarks):
                     row+=1
     
          
-    filePath = pf.GetOutputDataFileFullPath('run.summary.csv')               
+    filePath = pf.GetRunDataOutputFileFullPath('run.summary.csv')               
 
     df.to_csv(filePath)  

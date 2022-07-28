@@ -35,7 +35,7 @@ def getFileNameEncoder(modelName,netType,benchmark):
 
 def getFullPathEncoder(modelName,netType,benchmark):
     fileName = getFileNameEncoder(modelName,netType,benchmark)
-    fullpath = pf.GetOutputDataFileFullPath(fileName)
+    fullpath = pf.GetRunDataOutputFileFullPath(fileName)
     return fullpath
 
 def saveEncoder(modelName,netType,benchmark,content):
@@ -59,7 +59,7 @@ def getFileNameSolver(modelName,netType,benchmark):
 
 def getFullPathSolver(modelName,netType,benchmark):
     fileName = getFileNameSolver(modelName,netType,benchmark)
-    fullpath = pf.GetOutputDataFileFullPath(fileName)
+    fullpath = pf.GetRunDataOutputFileFullPath(fileName)
     return fullpath
     
 def saveSolver(modelName,netType,benchmark,content):

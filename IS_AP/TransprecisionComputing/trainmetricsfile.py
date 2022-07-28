@@ -21,7 +21,7 @@ def getFileName(modelName,netType,benchmark):
 
 def getFullPath(modelName,netType,benchmark):
     fileName = getFileName(modelName,netType,benchmark)
-    fullpath = pf.GetOutputDataFileFullPath(fileName)
+    fullpath = pf.GetRunDataOutputFileFullPath(fileName)
     return fullpath
 
 def save(modelName,netType,benchmark,content):
