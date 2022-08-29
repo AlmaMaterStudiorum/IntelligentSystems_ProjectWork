@@ -7,3 +7,20 @@ https://cris.unibo.it/retrieve/e1dcb332-7ac8-7715-e053-1705fe0a6cc9/flexfloat-po
 
 
 
+2022/08/29
+
+Download file correlation
+
+forse:   Fare il processo anche per la versione compressa tflite
+
+esaminare il file pruned : è possibile che la struttura dati aumenti nella versione pruned per indicare un ramo no trainig / weight = 0
+	No . vedere Rationale
+
+
+
+
+
+
+
+
+

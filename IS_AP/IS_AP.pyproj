@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7bfc238c-4ac4-49d1-a32f-02d92686ef39</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>TransprecisionComputing\main.py</StartupFile>
+    <StartupFile>TransprecisionComputing\console.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -33,6 +33,7 @@
     <Compile Include="Epidemics\support.py" />
     <Compile Include="Epidemics\TrainingAnMLModel.py" />
     <Compile Include="Epidemics\trainmetricsfile.py" />
+    <Compile Include="TransprecisionComputing\console.py" />
     <Compile Include="TransprecisionComputing\coptimetricsfile.py" />
     <Compile Include="TransprecisionComputing\DescrizioneData.txt" />
     <Compile Include="TransprecisionComputing\evaluatemetricsfile.py" />
@@ -80,6 +81,7 @@
     <Content Include="data\input\tpc\Correlation_g100.csv" />
     <Content Include="data\input\tpc\Correlation_pc.csv" />
     <Content Include="data\input\tpc\Correlation_vm.csv" />
+    <Content Include="Document\Rationale.txt" />
     <Content Include="Document\RoadMap.txt" />
     <Content Include="Epidemics\Links.txt" />
     <Content Include="TransprecisionComputing\Links.txt" />

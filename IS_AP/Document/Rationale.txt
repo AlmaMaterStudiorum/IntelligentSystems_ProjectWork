@@ -1,0 +1,3 @@
+Perchè il modello pruned è più grande della baseline :
+		https://www.tensorflow.org/model_optimization/guide/pruning/pruning_with_keras#strip_the_pruning_wrappers_from_the_pruned_model_before_export_for_serving
+		Semza la compressione in tflite il file è più grande
