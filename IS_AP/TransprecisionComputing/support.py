@@ -48,6 +48,11 @@ splittingData = 0.8
 epochConfig = 100
 batch_sizeConfig = 32
 patienceConfig=3
+learning_rateConfig=0.001
+
+
+initial_sparsityConfig = 0.0
+final_sparsityConfig = 0.9
 
 PRUNING = 'pruning'
 REFERENCE ='reference'
@@ -114,13 +119,16 @@ def BuildTrainPrintSaveModelNeuralNetwork(hidden,name,benchmark, size_in ,size_o
         modelNeuralNework = util.build_ml_model(input_size=size_in, output_size=size_out, hidden=hidden, name='MLP')
 
         starttime = datetime.datetime.now()
-        historyNeuralNework,accuracyNeuralNetwork = util.train_ml_model2(modelNeuralNework, tr_in, tr_out, ts_in, ts_out, verbose=0, epochs=epochConfig,patience=patienceConfig)
+        opt = keras.optimizers.Adam(learning_rate=learning_rateConfig)
+        historyNeuralNework,accuracyNeuralNetwork = util.train_ml_model2(modelNeuralNework, tr_in, tr_out, ts_in, ts_out, 
+                                                                         verbose='auto', 
+                                                                         epochs=epochConfig,
+                                                                         patience=patienceConfig,
+                                                                         opt=opt,
+                                                                         batch_size=batch_sizeConfig)
         endtime = datetime.datetime.now()
         elapsed = int((endtime - starttime).total_seconds() * 1000)
 
-        #util.plot_training_history(historyNeuralNework, figsize=figsize)
-        #util.print_ml_metrics(modelNeuralNework, tr_in, tr_out, 'training')
-        #util.print_ml_metrics(modelNeuralNework, ts_in, ts_out, 'test')
         fullpathh5,fullpathjson,fullPath = util.save_ml_model_with_winfolder(pf.GetRunDataOutputFolderFullPath(),modelNeuralNework, coreName)
         size = os.path.getsize(fullpathh5)
         row=tmf.getString(name,netType,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed,size)
@@ -332,14 +340,15 @@ def PruningNeuralNetwork(name,benchmark,tr_in,tr_out,ts_in,ts_out):
 
     # PRUNED MODEL
     pruning_schedule = tfmot.sparsity.keras.PolynomialDecay(
-                            initial_sparsity=0.2, 
-                            final_sparsity=0.9,
+                            initial_sparsity=initial_sparsityConfig, 
+                            final_sparsity=final_sparsityConfig,
                             begin_step=0, 
                             end_step=end_stepConfig)
 
     model_for_pruning = tfmot.sparsity.keras.prune_low_magnitude(model, pruning_schedule=pruning_schedule)
 
-    model_for_pruning.compile(optimizer='Adam',loss="mse",metrics=['accuracy'])
+    opt = keras.optimizers.Adam(learning_rate=learning_rateConfig)
+    model_for_pruning.compile(optimizer=opt,loss="mse",metrics=['accuracy'])
 
     model_for_pruning.summary()
     
@@ -670,7 +679,7 @@ def CreateSummary(nns, netTypes,benchmarks):
 
     df = pd.DataFrame()
     row = 0
-    metrics = ['train','evaluate','accuracy','rmse','encode','solver','status']
+    metrics = ['train','size','evaluate','accuracy','rmse','encode','solver','status']
 
     for i in range(len(metrics)) :
         df.loc[i,'metrics'] = metrics[i]
@@ -683,6 +692,10 @@ def CreateSummary(nns, netTypes,benchmarks):
 
                     fullPath = tmf.getFullPath(modelName,netType,benchmark)
                     item = mf.getItem(fullPath,'elapsed')               
+                    df.loc[row,column] = item
+                    row+=1
+
+                    item = mf.getItem(fullPath,'size')               
                     df.loc[row,column] = item
                     row+=1
 

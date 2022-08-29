@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from pickletools import optimize
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.integrate import odeint
@@ -219,13 +220,13 @@ def train_ml_model(model, X, y, epochs=20,
                      sample_weight=sample_weight)
     return history
 
-def train_ml_model2(model, x_train, y_train,x_test,y_test, epochs=20,
+def train_ml_model2(model, x_train, y_train,x_test,y_test,opt, epochs=20,
         verbose=0, patience=10, batch_size=32,
         validation_split=0.2, sample_weight=None,
         loss='mse', compile_model=True):
     # Compile the model
     if compile_model:
-        model.compile(optimizer='Adam', loss=loss,metrics=['accuracy'])
+        model.compile( loss=loss,metrics=['accuracy'],optimizer=opt)
     # Build the early stop callback
     cb = []
     if validation_split > 0:
