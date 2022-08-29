@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7bfc238c-4ac4-49d1-a32f-02d92686ef39</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>TransprecisionComputing\console.py</StartupFile>
+    <StartupFile>TransprecisionComputing\main.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>

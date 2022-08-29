@@ -51,7 +51,7 @@ patienceConfig=3
 learning_rateConfig=0.001
 
 
-initial_sparsityConfig = 0.0
+initial_sparsityConfig = 0.5
 final_sparsityConfig = 0.9
 
 PRUNING = 'pruning'
@@ -368,7 +368,10 @@ def PruningNeuralNetwork(name,benchmark,tr_in,tr_out,ts_in,ts_out):
 
 
     print("Print weight Model")
+    iLayer = 0
     for layer in model_for_pruning.layers:
+      print('Layer {layer}'.format(layer=iLayer))
+      iLayer =+ 1
       print(layer.get_weights()[0]) # weights
       print(layer.get_weights()[1]) # biases
     print("###################")
