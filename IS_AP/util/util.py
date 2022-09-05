@@ -183,6 +183,17 @@ def build_ml_model(input_size, output_size, hidden=[],
     model = keras.Sequential(ll, name=name)
     return model
 
+def build_ml_model2(input_size, output_size, hidden=[],
+        output_activation='linear', name=None,activation='relu'):
+    # Build all layers
+    ll = [keras.Input(input_size)]
+    for h in hidden:
+        ll.append(layers.Dense(h, activation=activation))
+    ll.append(layers.Dense(output_size, activation=output_activation))
+    # Build the model
+    model = keras.Sequential(ll, name=name)
+    return model
+
 
 class SimpleProgressBar(object):
     def __init__(self, epochs, width=80):

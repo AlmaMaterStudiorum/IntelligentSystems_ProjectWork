@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7bfc238c-4ac4-49d1-a32f-02d92686ef39</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>TransprecisionComputing\main.py</StartupFile>
+    <StartupFile>Epidemics\epidemics2.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -81,6 +81,7 @@
     <Content Include="data\input\tpc\Correlation_g100.csv" />
     <Content Include="data\input\tpc\Correlation_pc.csv" />
     <Content Include="data\input\tpc\Correlation_vm.csv" />
+    <Content Include="Document\Links.txt" />
     <Content Include="Document\Rationale.txt" />
     <Content Include="Document\RoadMap.txt" />
     <Content Include="Epidemics\Links.txt" />

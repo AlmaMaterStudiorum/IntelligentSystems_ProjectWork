@@ -47,7 +47,7 @@ overwriteModel = True
 splittingData = 0.8
 epochConfig = 100
 batch_sizeConfig = 32
-patienceConfig=3
+patienceConfig=10
 learning_rateConfig=0.001
 
 
@@ -108,7 +108,7 @@ def EndMethod(methodName):
 
     
 
-def BuildTrainPrintSaveModelNeuralNetwork(hidden,name,benchmark, size_in ,size_out, tr_in,tr_out,ts_in,ts_out):
+def BuildTrainPrintSaveModelNeuralNetwork(name,hidden,benchmark, size_in ,size_out, tr_in,tr_out,ts_in,ts_out):
     functionName=inspect.stack()[0][3]
     netType = REFERENCE
     LogMessage = '{functionName} : {name} {netType} {benchmark}'.format(functionName=functionName ,name=name, netType=netType,benchmark=benchmark)
@@ -116,7 +116,7 @@ def BuildTrainPrintSaveModelNeuralNetwork(hidden,name,benchmark, size_in ,size_o
     coreName = f'{name}.{netType}.{benchmark}'
     nameHF='{coreName}.{extension}'.format(coreName=coreName,extension='h5')
     if (not exists( pf.GetRunDataOutputFileFullPath(nameHF)) or (overwriteModel == True)):    
-        modelNeuralNework = util.build_ml_model(input_size=size_in, output_size=size_out, hidden=hidden, name='MLP')
+        modelNeuralNework = util.build_ml_model2(input_size=size_in, output_size=size_out, hidden=hidden, name=name,activation='relu')
 
         starttime = datetime.datetime.now()
         opt = keras.optimizers.Adam(learning_rate=learning_rateConfig)
@@ -131,7 +131,7 @@ def BuildTrainPrintSaveModelNeuralNetwork(hidden,name,benchmark, size_in ,size_o
 
         fullpathh5,fullpathjson,fullPath = util.save_ml_model_with_winfolder(pf.GetRunDataOutputFolderFullPath(),modelNeuralNework, coreName)
         size = os.path.getsize(fullpathh5)
-        row=tmf.getString(name,netType,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed,size)
+        row=tmf.getString(name,hidden,netType,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed,size)
         #realMetricsName = f'{name}.{netType}.{benchmark}'
         tmf.save(name,netType,benchmark,row)
         
@@ -271,8 +271,8 @@ def GetTheData(benchmark):
         ts = df.drop(tr.index)
 
         
-        tr_in = pd.DataFrame(ts,columns = ['var_0', 'var_1', 'var_2', 'var_3','var_4', 'var_5', 'var_6' ,'g100','pc','vm'])
-        tr_out = pd.DataFrame(ts,columns = ['error', 'time', 'memory_mean', 'memory_peak' ])
+        tr_in = pd.DataFrame(tr,columns = ['var_0', 'var_1', 'var_2', 'var_3','var_4', 'var_5', 'var_6' ,'g100','pc','vm'])
+        tr_out = pd.DataFrame(tr,columns = ['error', 'time', 'memory_mean', 'memory_peak' ])
 
         ts_in = pd.DataFrame(ts,columns = ['var_0', 'var_1', 'var_2', 'var_3','var_4', 'var_5', 'var_6' ,'g100','pc','vm'])
         ts_out = pd.DataFrame(ts,columns = ['error', 'time', 'memory_mean', 'memory_peak' ])
@@ -321,7 +321,7 @@ def GetTheData(benchmark):
 
 # TensorFlow Model Optimization Toolkit - TMOT    
 # https://www.tensorflow.org/model_optimization/guide/pruning/pruning_with_keras
-def PruningNeuralNetwork(name,benchmark,tr_in,tr_out,ts_in,ts_out):
+def PruningNeuralNetwork(name,topology,benchmark,tr_in,tr_out,ts_in,ts_out):
     functionName=inspect.stack()[0][3]
     netType = 'pruning'
     LogMessage = '{functionName} : {name} {netType} {benchmark}'.format(functionName=functionName ,name=name, netType=netType,benchmark=benchmark)
@@ -382,7 +382,7 @@ def PruningNeuralNetwork(name,benchmark,tr_in,tr_out,ts_in,ts_out):
     tf.keras.models.save_model(model_for_export, fullpathh5, include_optimizer=False)
 
     size = os.path.getsize(fullpathh5)
-    row=tmf.getString(name,netType,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed,size)
+    row=tmf.getString(name,topology,netType,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed,size)
     tmf.save(name,netType,benchmark,row)
     
      
@@ -536,7 +536,7 @@ def ExecuteCombinatorialOptimizationCorrelation(keras_model,modelName,netType,bo
     endtime = datetime.datetime.now()
     elapsed = int((endtime - starttime).total_seconds() * 1000)
 
-    content  = cmf.getStringEncoder(modelName,netType,benchmark,boundaries,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
+    content  = cmf.getStringEncoder(modelName,netType,benchmark,starttime.strftime("%Y-%m-%d %H:%M:%S"),endtime.strftime("%Y-%m-%d %H:%M:%S"),elapsed)
     cmf.saveEncoder(modelName,netType,benchmark,content)
 
     SolveCombinatorialOptimization(slv,X,boundaries,modelName,netType,variables,benchmark)
@@ -682,7 +682,8 @@ def CreateSummary(nns, netTypes,benchmarks):
 
     df = pd.DataFrame()
     row = 0
-    metrics = ['train','size','evaluate','accuracy','rmse','encode','solver','status']
+    metrics = ['topology','train','size','evaluate','accuracy','rmse','encode','solver','objective','status']
+    numberofdigit = 4
 
     for i in range(len(metrics)) :
         df.loc[i,'metrics'] = metrics[i]
@@ -694,6 +695,11 @@ def CreateSummary(nns, netTypes,benchmarks):
                     row = 0
 
                     fullPath = tmf.getFullPath(modelName,netType,benchmark)
+
+                    item = mf.getItem(fullPath,'topology')                       
+                    df.loc[row,column] = " ".join(str(x) for x in item)
+                    row+=1
+
                     item = mf.getItem(fullPath,'elapsed')               
                     df.loc[row,column] = item
                     row+=1
@@ -707,14 +713,14 @@ def CreateSummary(nns, netTypes,benchmarks):
                     df.loc[row,column] = item
                     row+=1
 
-                    fullPath = emf.getFullPath(modelName,netType,benchmark)
+                    #fullPath = emf.getFullPath(modelName,netType,benchmark)
                     item = mf.getItem(fullPath,'accuracy')                
-                    df.loc[row,column] = item
+                    df.loc[row,column] = round(item, numberofdigit)
                     row+=1
 
-                    fullPath = emf.getFullPath(modelName,netType,benchmark)
+                    #fullPath = emf.getFullPath(modelName,netType,benchmark)
                     item = mf.getItem(fullPath,'rmse')                
-                    df.loc[row,column] = item
+                    df.loc[row,column] = round(item, numberofdigit)
                     row+=1
 
                     fullPath = cmf.getFullPathEncoder(modelName,netType,benchmark)
@@ -722,9 +728,16 @@ def CreateSummary(nns, netTypes,benchmarks):
                     df.loc[row,column] = item
                     row+=1
 
+
                     fullPath = cmf.getFullPathSolver(modelName,netType,benchmark)
                     item = mf.getItem(fullPath,'elapsed')               
                     df.loc[row,column] = item
+                    row+=1
+
+                    normalizedvalue = mf.getItem(fullPath,'normalizedvalue')     
+                    if normalizedvalue != None :
+                        item = normalizedvalue['bitsum']
+                        df.loc[row,column] = round(item, numberofdigit)
                     row+=1
                     
                     item = mf.getItem(fullPath,'status')               

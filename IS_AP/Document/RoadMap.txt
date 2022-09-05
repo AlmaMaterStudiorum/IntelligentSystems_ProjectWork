@@ -18,6 +18,25 @@ esaminare il file pruned : è possibile che la struttura dati aumenti nella versi
 
 
 
+Scrivere Relazione:
+	Scopo dell'attività progettuale
+		https://lia-unibo.github.io/
+	Cos'è transprecision computing
+	Cos'è Empirical Model Learning
+		https://emlopt.github.io/
+		https://github.com/emlopt/emltutorial
+	Compressione rete neurale
+		TMOT
+		Pruning
+	I dati
+	Strumenti utilizzati
+	Procedimento
+	Le metriche 
+	Risultati
+
+
+
+
 
 
 

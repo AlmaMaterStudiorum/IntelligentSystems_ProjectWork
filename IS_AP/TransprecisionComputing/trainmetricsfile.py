@@ -8,6 +8,7 @@ import pathfiles as pf
 structConst={
     "modelName": "", 
     "functionName":"", 
+    "topology" : "",
     "startDate" : "", 
     "endDate"   : "",
     "elapsed"   : "",
@@ -28,10 +29,11 @@ def save(modelName,netType,benchmark,content):
     fullpath = getFullPath(modelName,netType,benchmark)
     mf.save(fullpath,content)
 
-def getString(modelName,functionName,startDate,endDate,elapsed,size):
+def getString(modelName,topology,functionName,startDate,endDate,elapsed,size):
     content =copy.deepcopy(structConst)
     content["modelName"]=modelName
     content["functionName"]=functionName
+    content["topology"]=topology
     content["startDate"]=startDate
     content["endDate"]=endDate
     content["elapsed"]=elapsed

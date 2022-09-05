@@ -18,19 +18,28 @@ nns = {
             #'nn7' : [18,15,4],
             #'nn8' : [48,45],
             #'nn9' : [48,45,4],
-            'nn10' : [10,7],
+            #'nn10' : [10,7],
             #'nn11' : [96,15],
             #'nn12' : [36,7],
             #'nn13' : [199,199,96,15]
             #'nn14' : [48,45,15]
-            'nn15' : [18,7],
-            'nn16' : [7],
-            'nn17' : [15]
+            #'nn15' : [18,7],
+            #'nn16' : [7],
+            #'nn17' : [15]
+            #'nn18' : [(4 ** 2) - 1],
+            #'nn19' : [127*4],
+            #'nn20' : [7*4],
+            #'nn21' : [4*3,15],
+            #'nn22' : [7*3,127],
+            #'nn23' : [3*3,7],
+            'nn24' : [4*3,15*4]
+            #'nn25' : [7*3,127*4],
+            #'nn26' : [3*3,7*4]
             
-        }
+    }
 
 benchmarks = ['Convolution','Correlation','Saxpy']
-benchmarksMod = ['Convolution','Saxpy']
+benchmarksMod = ['Correlation']
 netTypes = [support.REFERENCE,support.PRUNING]
 
 dataStructure = { 'Convolution' : {  
@@ -63,8 +72,8 @@ memory_meanMax = 10
 memory_peakMax = 10
 
 constrains = {
-              'time' : 100,
-              'error' : 0.01,
+              'time'        : 100,
+              'error'       : 0.01,
               'memory_mean' : 10,
               'memory_peak' : 10
 }
@@ -90,7 +99,7 @@ def RunTPC001():
 
 
 
-    for  benchmark in benchmarksMod:
+    for  benchmark in benchmarks:
 
         print(f"Benchmark {benchmark}")    
 
@@ -102,9 +111,9 @@ def RunTPC001():
 
             if startFromZero == True:
 
-                support.BuildTrainPrintSaveModelNeuralNetwork(hidden,nn,benchmark,topologies[benchmark]['size_in'],topologies[benchmark]['size_out'],tr_in,tr_out,ts_in,ts_out)
+                support.BuildTrainPrintSaveModelNeuralNetwork(nn,hidden,benchmark,topologies[benchmark]['size_in'],topologies[benchmark]['size_out'],tr_in,tr_out,ts_in,ts_out)
 
-                support.PruningNeuralNetwork(nn,benchmark,tr_in,tr_out,ts_in,ts_out)
+                support.PruningNeuralNetwork(nn,hidden,benchmark,tr_in,tr_out,ts_in,ts_out)
     
      
             modelReference = util.load_ml_model_with_winfolder(pf.GetRunDataOutputFolderFullPath(),f'{nn}.{support.REFERENCE}.{benchmark}')
@@ -125,7 +134,7 @@ def RunTPC001():
 
                 support.ExecuteCombinatorialOptimizationSaxpy(modelPruning,nn,support.PRUNING,boundaries,constrains,topologies[benchmark]['size_in'])
 
-    support.CreateSummary(nns,netTypes,benchmarksMod)
+    support.CreateSummary(nns,netTypes,benchmarks)
     
 def RunTPC002():
     support.CreateSummary(nns,netTypes,benchmarksMod)
