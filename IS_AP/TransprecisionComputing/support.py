@@ -128,6 +128,23 @@ def BuildTrainPrintSaveModelNeuralNetwork(name,hidden,benchmark, size_in ,size_o
                                                                          batch_size=batch_sizeConfig)
         endtime = datetime.datetime.now()
         elapsed = int((endtime - starttime).total_seconds() * 1000)
+        print("###################")
+        print("Print Model")
+        iLayer = 0
+        for layer in modelNeuralNework.layers:
+          print('Layer {layer}'.format(layer=iLayer))
+          iLayer =+ 1
+          print("Print weight ")
+          print(layer.get_weights()[0]) # weights
+          print("Print biases ")
+          print(layer.get_weights()[1]) # biases
+        print("###################")
+        print("# # # # # # # # # # # # # # # # # # #")
+        print("###################")
+        print("modelNeuralNework.summary()")
+        print(modelNeuralNework.summary())
+        print("###################")
+
 
         fullpathh5,fullpathjson,fullPath = util.save_ml_model_with_winfolder(pf.GetRunDataOutputFolderFullPath(),modelNeuralNework, coreName)
         size = os.path.getsize(fullpathh5)
