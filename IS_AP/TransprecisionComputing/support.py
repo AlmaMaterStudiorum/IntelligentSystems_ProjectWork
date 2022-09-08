@@ -765,3 +765,5 @@ def CreateSummary(nns, netTypes,benchmarks):
     filePath = pf.GetRunDataOutputFileFullPath('run.summary.csv')               
 
     df.to_csv(filePath)  
+
+

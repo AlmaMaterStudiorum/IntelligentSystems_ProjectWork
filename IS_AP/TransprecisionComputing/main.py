@@ -64,12 +64,6 @@ topologies ={   'Convolution'  :  {'size_in' :  7 , 'size_out' : 4},
                 'Saxpy'        :  {'size_in' :  6 , 'size_out' : 4}
 }
 
-# currentBenchmark = 0
-# benchmark = benchmarks[currentBenchmark]
-timeMax = 100
-errorMax = 0.01
-memory_meanMax = 10
-memory_peakMax = 10
 
 constrains = {
               'time'        : 100,
@@ -184,8 +178,11 @@ def RunTPC003():
 
     support.CreateSummary(nns,netTypes,benchmarksMod)
 
+
+
 # RUNNING AREA
 
 RunTPC001()
 #RunTPC002()
 #RunTPC003()
+#RunOneHotEncoding()
