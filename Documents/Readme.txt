@@ -11,4 +11,5 @@ Al contrario il pruning del modello di baseline è codificabile come modello di 
 - Architettura del progetto ,pipeline (TBD)
 - Preparazione al progetto (SIR) (TBD)
 - Summary delle metriche
-- Valutazioni
+- Risultati
+
